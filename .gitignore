@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment variables (IMPORTANT: Contains sensitive data)
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor directories
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Development
+.cache/
+.temp/
+.tmp/
+
+# Database files (if any local SQLite)
+*.db
+*.sqlite
+
+# PWA service worker cache
+sw.js
+workbox-*.js
