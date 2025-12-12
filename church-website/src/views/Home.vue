@@ -1,7 +1,7 @@
 <template>
   <div class="home">
     <!-- Hero Section with Logo and Text -->
-    <div class="hero">
+    <div class="hero" :style="{ background: `linear-gradient(135deg, ${backgroundColor}, ${getSecondaryColor(backgroundColor)})` }">
       <div class="container">
         <div class="hero-content">
           <div class="hero-logo">
@@ -76,7 +76,8 @@ export default {
       siteLogo: '',
       siteTitle: '',
       siteSubtitle: '',
-      homeSectionTitle: ''
+      homeSectionTitle: '',
+      backgroundColor: '#3b82f6'
     }
   },
   async mounted() {
@@ -91,6 +92,7 @@ export default {
         this.siteTitle = response.data.site_title || ''
         this.siteSubtitle = response.data.site_subtitle || ''
         this.homeSectionTitle = response.data.home_section_title || ''
+        this.backgroundColor = response.data.background_color || '#3b82f6'
       } catch (err) {
         console.error('Error fetching site settings:', err)
       }
@@ -126,6 +128,17 @@ export default {
       }
 
       return defaultLabels[fieldName]
+    },
+    getSecondaryColor(hexColor) {
+      // Convert hex to RGB
+      const r = parseInt(hexColor.slice(1, 3), 16)
+      const g = parseInt(hexColor.slice(3, 5), 16)
+      const b = parseInt(hexColor.slice(5, 7), 16)
+
+      // Make it slightly darker for gradient effect
+      const darken = (val) => Math.max(0, Math.floor(val * 0.7))
+
+      return `rgb(${darken(r)}, ${darken(g)}, ${darken(b)})`
     }
   }
 }

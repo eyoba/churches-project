@@ -12,7 +12,7 @@
 
     <div v-else class="container">
       <!-- Church Header -->
-      <div class="church-header card">
+      <div class="church-header card" :style="{ background: `linear-gradient(135deg, ${church.background_color || '#3b82f6'}, ${getSecondaryColor(church.background_color || '#3b82f6')})` }">
         <div class="header-content">
           <div v-if="church.logo_url" class="church-logo-large">
             <img :src="church.logo_url" :alt="church.name">
@@ -258,6 +258,17 @@ export default {
       }
 
       return defaultLabels[fieldName]
+    },
+    getSecondaryColor(hexColor) {
+      // Convert hex to RGB
+      const r = parseInt(hexColor.slice(1, 3), 16)
+      const g = parseInt(hexColor.slice(3, 5), 16)
+      const b = parseInt(hexColor.slice(5, 7), 16)
+
+      // Make it slightly darker for gradient effect
+      const darken = (val) => Math.max(0, Math.floor(val * 0.7))
+
+      return `rgb(${darken(r)}, ${darken(g)}, ${darken(b)})`
     }
   }
 }

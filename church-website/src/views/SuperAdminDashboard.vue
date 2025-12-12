@@ -105,6 +105,26 @@
           >
         </div>
 
+        <div class="form-group">
+          <label>Homepage Background Color</label>
+          <div class="color-picker-container">
+            <input
+              type="color"
+              v-model="homeBackgroundColor"
+              class="color-input"
+            >
+            <input
+              type="text"
+              v-model="homeBackgroundColor"
+              placeholder="#3b82f6"
+              pattern="^#[0-9A-Fa-f]{6}$"
+              class="color-text-input"
+            >
+            <span class="color-preview" :style="{ backgroundColor: homeBackgroundColor }"></span>
+          </div>
+          <small class="help-text">Choose the background color for the homepage hero section</small>
+        </div>
+
         <button @click="updateHomePageText" class="btn btn-primary">
           💾 Save Home Page Text
         </button>
@@ -217,7 +237,7 @@
             </div>
             <div class="form-group">
               <label>Website URL</label>
-              <input v-model="churchForm.website_url" placeholder="https://...">
+              <input v-model="churchForm.website" placeholder="https://...">
             </div>
           </div>
 
@@ -330,9 +350,10 @@ export default {
         pastor_title: '',
         description: '',
         logo_url: '',
-        website_url: '',
+        website: '',
         service_times: '',
-        is_active: true
+        is_active: true,
+        background_color: '#3b82f6'
       },
       adminForm: {
         username: '',
@@ -349,7 +370,8 @@ export default {
       uploading: false,
       siteTitle: '',
       siteSubtitle: '',
-      navTitle: ''
+      navTitle: '',
+      homeBackgroundColor: '#3b82f6'
     }
   },
   computed: {
@@ -387,6 +409,7 @@ export default {
         this.siteTitle = response.data.site_title || ''
         this.siteSubtitle = response.data.site_subtitle || ''
         this.navTitle = response.data.nav_title || ''
+        this.homeBackgroundColor = response.data.background_color || '#3b82f6'
       } catch (error) {
         console.error('Error fetching site settings:', error)
       }
@@ -410,6 +433,11 @@ export default {
           axios.put(`${API_URL}/super-admin/site-settings`, {
             setting_key: 'nav_title',
             setting_value: this.navTitle
+          }, { headers: { Authorization: `Bearer ${token}` } }),
+
+          axios.put(`${API_URL}/super-admin/site-settings`, {
+            setting_key: 'background_color',
+            setting_value: this.homeBackgroundColor
           }, { headers: { Authorization: `Bearer ${token}` } })
         ])
 
@@ -590,7 +618,7 @@ export default {
         pastor_title: '',
         description: '',
         logo_url: '',
-        website_url: '',
+        website: '',
         service_times: '',
         is_active: true
       }
@@ -990,5 +1018,41 @@ code {
 
 .admin-form h3 {
   margin-top: 0;
+}
+
+.color-picker-container {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.color-input {
+  width: 60px;
+  height: 40px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.color-text-input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: monospace;
+}
+
+.color-preview {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+.help-text {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: #666;
 }
 </style>

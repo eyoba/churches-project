@@ -366,9 +366,10 @@ app.post('/api/super-admin/churches', authenticateSuperAdmin, async (req, res) =
       pastor_title,
       description,
       logo_url,
-      website_url,
+      website,
       service_times,
-      is_active
+      is_active,
+      background_color
     } = req.body;
 
     // Check if slug already exists
@@ -380,11 +381,11 @@ app.post('/api/super-admin/churches', authenticateSuperAdmin, async (req, res) =
     const result = await pool.query(`
       INSERT INTO churches (
         name, slug, address, phone, email, pastor_name, pastor_title,
-        description, logo_url, website_url, service_times, is_active
+        description, logo_url, website, sunday_service_time, is_active, background_color
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       RETURNING *
-    `, [name, slug, address, phone, email, pastor_name, pastor_title, description, logo_url, website_url, service_times, is_active !== false]);
+    `, [name, slug, address, phone, email, pastor_name, pastor_title, description, logo_url, website, service_times, is_active !== false, background_color || '#3b82f6']);
 
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -405,9 +406,10 @@ app.put('/api/super-admin/churches/:id', authenticateSuperAdmin, async (req, res
       pastor_title,
       description,
       logo_url,
-      website_url,
+      website,
       service_times,
-      is_active
+      is_active,
+      background_color
     } = req.body;
 
     // Check if new slug conflicts with another church
@@ -430,13 +432,14 @@ app.put('/api/super-admin/churches/:id', authenticateSuperAdmin, async (req, res
         pastor_title = $7,
         description = $8,
         logo_url = $9,
-        website_url = $10,
-        service_times = $11,
+        website = $10,
+        sunday_service_time = $11,
         is_active = $12,
+        background_color = $13,
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $13
+      WHERE id = $14
       RETURNING *
-    `, [name, slug, address, phone, email, pastor_name, pastor_title, description, logo_url, website_url, service_times, is_active, req.params.id]);
+    `, [name, slug, address, phone, email, pastor_name, pastor_title, description, logo_url, website, service_times, is_active, background_color, req.params.id]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Church not found' });
@@ -539,8 +542,11 @@ app.put('/api/church-admin/church-info', authenticateChurchAdmin, async (req, re
       name, address, phone, email, website, logo_url,
       pastor_name, pastor_phone, pastor_email, pastor_bio,
       sunday_service_time, wednesday_service_time, other_service_times,
-      description, mission_statement, field_labels, display_order, facebook
+      description, mission_statement, field_labels, display_order, facebook, background_color
     } = req.body;
+
+    console.log('Received background_color from client:', background_color);
+    console.log('Full req.body:', req.body);
 
     const result = await pool.query(`
       UPDATE churches SET
@@ -548,14 +554,15 @@ app.put('/api/church-admin/church-info', authenticateChurchAdmin, async (req, re
         pastor_name = $7, pastor_phone = $8, pastor_email = $9, pastor_bio = $10,
         sunday_service_time = $11, wednesday_service_time = $12, other_service_times = $13,
         description = $14, mission_statement = $15, field_labels = $16, display_order = $17,
-        facebook = $18, updated_at = NOW()
-      WHERE id = $19
+        facebook = $18, background_color = $19, updated_at = NOW()
+      WHERE id = $20
       RETURNING *
     `, [name, address, phone, email, website, logo_url, pastor_name, pastor_phone, pastor_email,
         pastor_bio, sunday_service_time, wednesday_service_time, other_service_times,
         description, mission_statement, field_labels ? JSON.stringify(field_labels) : null,
-        display_order || 0, facebook, church_id]);
+        display_order || 0, facebook, background_color || '#3b82f6', church_id]);
 
+    console.log('Updated church background_color in DB:', result.rows[0].background_color);
     res.json(result.rows[0]);
   } catch (error) {
     res.status(500).json({ error: error.message });

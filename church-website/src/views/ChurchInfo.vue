@@ -205,6 +205,29 @@
           >
         </div>
 
+        <div class="form-group">
+          <label for="background_color">Church Page Background Color</label>
+          <div class="color-picker-container">
+            <input
+              id="background_color"
+              type="color"
+              v-model="church.background_color"
+              class="color-input"
+              :disabled="saving"
+            >
+            <input
+              type="text"
+              v-model="church.background_color"
+              placeholder="#3b82f6"
+              pattern="^#[0-9A-Fa-f]{6}$"
+              class="color-text-input"
+              :disabled="saving"
+            >
+            <span class="color-preview" :style="{ backgroundColor: church.background_color }"></span>
+          </div>
+          <small class="form-help">Choose the background color for your church's detail page header</small>
+        </div>
+
         <div class="logo-section">
           <label>Church Logo</label>
 
@@ -296,7 +319,8 @@ export default {
         website: '',
         logo_url: '',
         display_order: 0,
-        facebook: ''
+        facebook: '',
+        background_color: '#3b82f6'
       },
       fieldLabels: {
         pastor_name: 'Pastor',
@@ -348,7 +372,8 @@ export default {
             website: response.data.church.website || '',
             logo_url: response.data.church.logo_url || '',
             display_order: response.data.church.display_order || 0,
-            facebook: response.data.church.facebook || ''
+            facebook: response.data.church.facebook || '',
+            background_color: response.data.church.background_color || '#3b82f6'
           }
           this.originalChurch = { ...this.church }
 
@@ -400,6 +425,8 @@ export default {
         }
 
         console.log('Saving field labels:', this.fieldLabels)
+        console.log('Saving background_color:', this.church.background_color)
+        console.log('Full church data being sent:', this.church)
 
         const response = await axios.put(
           `${API_URL}/church-admin/church-info`,
@@ -677,5 +704,34 @@ export default {
   .form-actions button {
     width: 100%;
   }
+}
+
+.color-picker-container {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.color-input {
+  width: 60px;
+  height: 40px;
+  border: 1px solid var(--gray-300);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.color-text-input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid var(--gray-300);
+  border-radius: 4px;
+  font-family: monospace;
+}
+
+.color-preview {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  border: 1px solid var(--gray-300);
 }
 </style>
