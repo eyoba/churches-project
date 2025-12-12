@@ -42,6 +42,9 @@
               <div v-if="church.phone" class="info-item">
                 <strong>{{ getFieldLabel(church, 'phone') }}:</strong> {{ church.phone }}
               </div>
+              <div v-if="church.facebook" class="info-item">
+                <strong>{{ getFieldLabel(church, 'facebook') }}:</strong> <a :href="church.facebook" target="_blank">Visit Page</a>
+              </div>
             </div>
 
             <router-link :to="`/church/${church.slug}`" class="btn btn-primary mt-2">
@@ -111,7 +114,8 @@ export default {
         address: 'Address',
         phone: 'Phone',
         email: 'Email',
-        website: 'Website'
+        website: 'Website',
+        facebook: 'Facebook'
       }
 
       if (church.field_labels) {

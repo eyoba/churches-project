@@ -39,6 +39,9 @@
               <div v-if="church.website" class="contact-item">
                 <strong>{{ getFieldLabel('website') }}:</strong> <a :href="church.website" target="_blank">{{ church.website }}</a>
               </div>
+              <div v-if="church.facebook" class="contact-item">
+                <strong>{{ getFieldLabel('facebook') }}:</strong> <a :href="church.facebook" target="_blank">Visit Page</a>
+              </div>
             </div>
           </div>
         </div>
@@ -243,7 +246,8 @@ export default {
         address: 'Address',
         phone: 'Phone',
         email: 'Email',
-        website: 'Website'
+        website: 'Website',
+        facebook: 'Facebook'
       }
 
       if (this.church && this.church.field_labels) {

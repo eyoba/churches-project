@@ -36,6 +36,21 @@
         </div>
 
         <div class="form-group">
+          <label for="display_order">Display Order</label>
+          <input
+            id="display_order"
+            v-model.number="church.display_order"
+            type="number"
+            placeholder="0"
+            min="0"
+            :disabled="saving"
+          >
+          <small class="form-help">
+            Control the order this church appears on the home page. Lower numbers appear first (0, 1, 2, etc.).
+          </small>
+        </div>
+
+        <div class="form-group">
           <label for="description">Description</label>
           <textarea
             id="description"
@@ -106,6 +121,17 @@
                 :disabled="saving"
               >
             </div>
+
+            <div class="form-group">
+              <label for="label_facebook">Label for Facebook Field</label>
+              <input
+                id="label_facebook"
+                v-model="fieldLabels.facebook"
+                type="text"
+                placeholder="Facebook"
+                :disabled="saving"
+              >
+            </div>
           </div>
         </div>
 
@@ -164,6 +190,17 @@
             v-model="church.website"
             type="url"
             placeholder="https://www.yourchurch.com"
+            :disabled="saving"
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="facebook">Facebook Page</label>
+          <input
+            id="facebook"
+            v-model="church.facebook"
+            type="url"
+            placeholder="https://www.facebook.com/yourchurch"
             :disabled="saving"
           >
         </div>
@@ -257,14 +294,17 @@ export default {
         phone: '',
         email: '',
         website: '',
-        logo_url: ''
+        logo_url: '',
+        display_order: 0,
+        facebook: ''
       },
       fieldLabels: {
         pastor_name: 'Pastor',
         address: 'Address',
         phone: 'Phone',
         email: 'Email',
-        website: 'Website'
+        website: 'Website',
+        facebook: 'Facebook'
       },
       originalChurch: null,
       originalLabels: null,
@@ -306,7 +346,9 @@ export default {
             phone: response.data.church.phone || '',
             email: response.data.church.email || '',
             website: response.data.church.website || '',
-            logo_url: response.data.church.logo_url || ''
+            logo_url: response.data.church.logo_url || '',
+            display_order: response.data.church.display_order || 0,
+            facebook: response.data.church.facebook || ''
           }
           this.originalChurch = { ...this.church }
 

@@ -84,7 +84,7 @@ const authenticateSuperAdmin = (req, res, next) => {
 app.get('/api/churches', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, name, slug, address, phone, email, pastor_name, description, logo_url, field_labels FROM churches WHERE is_active = true ORDER BY name'
+      'SELECT id, name, slug, address, phone, email, pastor_name, description, logo_url, field_labels, display_order, facebook FROM churches WHERE is_active = true ORDER BY display_order ASC, name ASC'
     );
     res.json(result.rows);
   } catch (error) {
@@ -538,7 +538,7 @@ app.put('/api/church-admin/church-info', authenticateChurchAdmin, async (req, re
       name, address, phone, email, website, logo_url,
       pastor_name, pastor_phone, pastor_email, pastor_bio,
       sunday_service_time, wednesday_service_time, other_service_times,
-      description, mission_statement, field_labels
+      description, mission_statement, field_labels, display_order, facebook
     } = req.body;
 
     const result = await pool.query(`
@@ -546,13 +546,14 @@ app.put('/api/church-admin/church-info', authenticateChurchAdmin, async (req, re
         name = $1, address = $2, phone = $3, email = $4, website = $5, logo_url = $6,
         pastor_name = $7, pastor_phone = $8, pastor_email = $9, pastor_bio = $10,
         sunday_service_time = $11, wednesday_service_time = $12, other_service_times = $13,
-        description = $14, mission_statement = $15, field_labels = $16,
-        updated_at = NOW()
-      WHERE id = $17
+        description = $14, mission_statement = $15, field_labels = $16, display_order = $17,
+        facebook = $18, updated_at = NOW()
+      WHERE id = $19
       RETURNING *
     `, [name, address, phone, email, website, logo_url, pastor_name, pastor_phone, pastor_email,
         pastor_bio, sunday_service_time, wednesday_service_time, other_service_times,
-        description, mission_statement, field_labels ? JSON.stringify(field_labels) : null, church_id]);
+        description, mission_statement, field_labels ? JSON.stringify(field_labels) : null,
+        display_order || 0, facebook, church_id]);
 
     res.json(result.rows[0]);
   } catch (error) {
