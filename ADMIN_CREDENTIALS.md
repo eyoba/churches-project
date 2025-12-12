@@ -13,23 +13,23 @@
 ## Church Admin Accounts
 **Per-church access - Can only manage their own church**
 
-### Default Password for All Church Admins: `admin123`
-
-### Church 1: First Baptist Church
-- **Username**: `admin.first`
-- **Password**: `admin123`
+### Church 1: First Baptist Church (Bergen)
+- **Username**: `admin.bergen`
+- **Password**: `admin.bergen`
 - **Email**: admin@firstbaptist.no
 - **Admin Name**: John Hansen
 
-### Church 2: Grace Community Church
-- **Username**: `admin.grace`
-- **Password**: `admin123`
+### Church 2: Grace Community Church (Kristiansand)
+- **Username**: `admin.kristiansand`
+- **Password**: `admin.kristiansand`
 - **Email**: admin@gracechurch.no
 - **Admin Name**: Sarah Olsen
 
-### Church 3: Hope Fellowship Church
-- **Username**: `admin.hope`
-- **Password**: `admin123`
+### Church 3: Hope Fellowship Church (Oslo)
+- **Username**: `admin.oslo`
+- **Password**: `admin.oslo`
+- **Email**: admin@hopefellowship.no
+- **Admin Name**: Erik Andersen
 
 ---
 

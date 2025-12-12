@@ -24,13 +24,51 @@
 
         <form @submit.prevent="handleSubmit">
           <div class="form-group">
+            <label>Upload Method</label>
+            <div class="upload-method-toggle">
+              <button
+                type="button"
+                :class="['method-btn', { active: uploadMethod === 'file' }]"
+                @click="uploadMethod = 'file'"
+                :disabled="saving"
+              >
+                📁 Upload from Computer
+              </button>
+              <button
+                type="button"
+                :class="['method-btn', { active: uploadMethod === 'url' }]"
+                @click="uploadMethod = 'url'"
+                :disabled="saving"
+              >
+                🔗 Enter URL
+              </button>
+            </div>
+          </div>
+
+          <!-- File Upload -->
+          <div v-if="uploadMethod === 'file'" class="form-group">
+            <label for="photo_file">Select Photo *</label>
+            <input
+              id="photo_file"
+              type="file"
+              accept="image/*"
+              @change="handleFileSelect"
+              :disabled="saving"
+              class="file-input"
+            >
+            <small class="form-help">
+              Supported formats: JPG, PNG, GIF, WebP. Max size: 5MB
+            </small>
+          </div>
+
+          <!-- URL Upload -->
+          <div v-if="uploadMethod === 'url'" class="form-group">
             <label for="photo_url">Photo URL *</label>
             <input
               id="photo_url"
               v-model="formData.photo_url"
               type="url"
               placeholder="https://example.com/photo.jpg"
-              required
               :disabled="saving"
             >
             <small class="form-help">
@@ -49,15 +87,26 @@
             >
           </div>
 
-          <div v-if="formData.photo_url" class="photo-preview">
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                v-model="formData.is_published"
+                :disabled="saving"
+              >
+              <span>Publish immediately (visible on website)</span>
+            </label>
+          </div>
+
+          <div v-if="previewUrl" class="photo-preview">
             <label>Preview:</label>
             <img
-              :src="formData.photo_url"
+              :src="previewUrl"
               alt="Photo preview"
               @error="handleImageError"
             >
             <p v-if="imageError" class="preview-error">
-              Unable to load image. Please check the URL.
+              Unable to load image. Please check the file or URL.
             </p>
           </div>
 
@@ -105,7 +154,7 @@
         <div v-else class="photos-grid">
           <div v-for="photo in photos" :key="photo.id" class="photo-card">
             <div class="photo-image" @click="viewPhoto(photo)">
-              <img :src="photo.photo_url" :alt="photo.caption || 'Church photo'">
+              <img :src="photo.image_url" :alt="photo.caption || 'Church photo'">
             </div>
 
             <div class="photo-info">
@@ -151,9 +200,13 @@ export default {
     return {
       photos: [],
       showForm: false,
+      uploadMethod: 'file',
+      selectedFile: null,
+      previewUrl: null,
       formData: {
         photo_url: '',
-        caption: ''
+        caption: '',
+        is_published: true
       },
       selectedPhoto: null,
       loading: true,
@@ -207,9 +260,13 @@ export default {
     },
     showUploadForm() {
       this.showForm = true
+      this.uploadMethod = 'file'
+      this.selectedFile = null
+      this.previewUrl = null
       this.formData = {
         photo_url: '',
-        caption: ''
+        caption: '',
+        is_published: true
       }
       this.imageError = false
       this.error = null
@@ -217,21 +274,65 @@ export default {
     },
     cancelForm() {
       this.showForm = false
+      this.uploadMethod = 'file'
+      this.selectedFile = null
+      this.previewUrl = null
       this.formData = {
         photo_url: '',
-        caption: ''
+        caption: '',
+        is_published: true
       }
       this.imageError = false
       this.error = null
     },
+    handleFileSelect(event) {
+      const file = event.target.files[0]
+      if (!file) {
+        this.selectedFile = null
+        this.previewUrl = null
+        return
+      }
+
+      // Validate file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        this.error = 'File size must be less than 5MB'
+        this.selectedFile = null
+        this.previewUrl = null
+        return
+      }
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        this.error = 'Please select a valid image file'
+        this.selectedFile = null
+        this.previewUrl = null
+        return
+      }
+
+      this.selectedFile = file
+      this.error = null
+
+      // Create preview URL
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        this.previewUrl = e.target.result
+      }
+      reader.readAsDataURL(file)
+    },
     async handleSubmit() {
-      if (!this.formData.photo_url.trim()) {
+      // Validation
+      if (this.uploadMethod === 'file' && !this.selectedFile) {
+        this.error = 'Please select a photo file'
+        return
+      }
+
+      if (this.uploadMethod === 'url' && !this.formData.photo_url.trim()) {
         this.error = 'Please enter a photo URL'
         return
       }
 
       if (this.imageError) {
-        this.error = 'Please provide a valid image URL'
+        this.error = 'Please provide a valid image'
         return
       }
 
@@ -240,25 +341,56 @@ export default {
         this.error = null
         this.successMessage = null
 
-        const headers = this.getAuthHeaders()
-        if (!headers) return
-
-        const photoData = {
-          photo_url: this.formData.photo_url,
-          caption: this.formData.caption || null
+        const token = localStorage.getItem('church_admin_token')
+        if (!token) {
+          this.$router.push('/admin/login')
+          return
         }
 
-        await axios.post(
-          `${API_URL}/church-admin/photos`,
-          photoData,
-          { headers }
-        )
+        if (this.uploadMethod === 'file') {
+          // Use FormData upload (like logo upload - no Cloudinary needed!)
+          const formData = new FormData()
+          formData.append('photo', this.selectedFile)
+          formData.append('caption', this.formData.caption || '')
+          formData.append('is_published', this.formData.is_published)
+
+          await axios.post(
+            `${API_URL}/admin/upload-gallery-photo`,
+            formData,
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'multipart/form-data'
+              }
+            }
+          )
+        } else {
+          // URL upload
+          const headers = this.getAuthHeaders()
+          if (!headers) return
+
+          const photoData = {
+            photo_url: this.formData.photo_url,
+            caption: this.formData.caption || null,
+            is_published: this.formData.is_published
+          }
+
+          await axios.post(
+            `${API_URL}/church-admin/photos`,
+            photoData,
+            { headers }
+          )
+        }
 
         this.successMessage = 'Photo uploaded successfully!'
         this.showForm = false
+        this.uploadMethod = 'file'
+        this.selectedFile = null
+        this.previewUrl = null
         this.formData = {
           photo_url: '',
-          caption: ''
+          caption: '',
+          is_published: true
         }
         this.imageError = false
 
@@ -337,8 +469,17 @@ export default {
     }
   },
   watch: {
-    'formData.photo_url'() {
+    'formData.photo_url'(newVal) {
       this.imageError = false
+      if (this.uploadMethod === 'url' && newVal) {
+        this.previewUrl = newVal
+      }
+    },
+    uploadMethod() {
+      this.imageError = false
+      this.previewUrl = null
+      this.selectedFile = null
+      this.error = null
     }
   }
 }
@@ -354,6 +495,69 @@ export default {
 
 .page-header h1 {
   margin: 0;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-weight: normal;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: auto;
+  cursor: pointer;
+}
+
+.checkbox-label span {
+  user-select: none;
+}
+
+.upload-method-toggle {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.method-btn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--gray-300);
+  background: white;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.95rem;
+}
+
+.method-btn:hover:not(:disabled) {
+  border-color: var(--primary-color);
+  background: var(--gray-50);
+}
+
+.method-btn.active {
+  border-color: var(--primary-color);
+  background: var(--primary-color);
+  color: white;
+}
+
+.method-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.file-input {
+  padding: 0.75rem;
+  border: 2px dashed var(--gray-300);
+  border-radius: 0.5rem;
+  background: var(--gray-50);
+  cursor: pointer;
+}
+
+.file-input:hover {
+  border-color: var(--primary-color);
+  background: white;
 }
 
 .form-help {

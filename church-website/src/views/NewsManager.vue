@@ -47,6 +47,17 @@
             ></textarea>
           </div>
 
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                v-model="formData.is_published"
+                :disabled="saving"
+              >
+              <span>Publish immediately (visible on website)</span>
+            </label>
+          </div>
+
           <div class="form-actions">
             <button
               type="submit"
@@ -123,7 +134,8 @@ export default {
       editingNews: null,
       formData: {
         title: '',
-        content: ''
+        content: '',
+        is_published: true
       },
       loading: true,
       saving: false,
@@ -178,7 +190,8 @@ export default {
       this.editingNews = null
       this.formData = {
         title: '',
-        content: ''
+        content: '',
+        is_published: true
       }
       this.error = null
       this.successMessage = null
@@ -188,7 +201,8 @@ export default {
       this.editingNews = item
       this.formData = {
         title: item.title,
-        content: item.content
+        content: item.content,
+        is_published: item.is_published || false
       }
       this.error = null
       this.successMessage = null
@@ -199,7 +213,8 @@ export default {
       this.editingNews = null
       this.formData = {
         title: '',
-        content: ''
+        content: '',
+        is_published: true
       }
       this.error = null
     },
@@ -239,7 +254,8 @@ export default {
         this.editingNews = null
         this.formData = {
           title: '',
-          content: ''
+          content: '',
+          is_published: true
         }
 
         await this.fetchNews()
@@ -322,6 +338,23 @@ export default {
 
 .page-header h1 {
   margin: 0;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-weight: normal;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: auto;
+  cursor: pointer;
+}
+
+.checkbox-label span {
+  user-select: none;
 }
 
 .form-actions {

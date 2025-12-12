@@ -119,7 +119,7 @@
               class="gallery-item"
               @click="openLightbox(photo)"
             >
-              <img :src="photo.photo_url" :alt="photo.caption || 'Church photo'">
+              <img :src="photo.image_url" :alt="photo.caption || 'Church photo'">
               <div v-if="photo.caption" class="photo-caption">{{ photo.caption }}</div>
             </div>
           </div>

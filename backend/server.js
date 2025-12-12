@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken');
 const twilio = require('twilio');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -18,8 +19,8 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 
-// Serve static files from uploads directory
-app.use('/uploads', express.static('public/uploads'));
+// Serve static files from uploads directory (with absolute path)
+app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
 // Database
 const pool = new Pool({
@@ -133,7 +134,7 @@ app.get('/api/churches/:slug/events', async (req, res) => {
       SELECT e.*, c.name as church_name
       FROM church_events e
       JOIN churches c ON e.church_id = c.id
-      WHERE c.slug = $1 AND e.event_date >= NOW()
+      WHERE c.slug = $1 AND e.event_date >= NOW() AND e.is_published = true
       ORDER BY e.event_date ASC
     `, [req.params.slug]);
     res.json(result.rows);
@@ -149,7 +150,7 @@ app.get('/api/churches/:slug/photos', async (req, res) => {
       SELECT p.*
       FROM church_photos p
       JOIN churches c ON p.church_id = c.id
-      WHERE c.slug = $1
+      WHERE c.slug = $1 AND p.is_published = true
       ORDER BY p.display_order, p.created_at DESC
       LIMIT 50
     `, [req.params.slug]);
@@ -677,12 +678,12 @@ app.get('/api/church-admin/events', authenticateChurchAdmin, async (req, res) =>
 
 app.post('/api/church-admin/events', authenticateChurchAdmin, async (req, res) => {
   try {
-    const { title, description, event_date, end_date, location, is_recurring, recurrence_pattern } = req.body;
+    const { title, description, event_date, end_date, location, is_recurring, recurrence_pattern, is_published } = req.body;
     const result = await pool.query(`
-      INSERT INTO church_events (church_id, title, description, event_date, end_date, location, is_recurring, recurrence_pattern, created_by)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      INSERT INTO church_events (church_id, title, description, event_date, end_date, location, is_recurring, recurrence_pattern, created_by, is_published)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *
-    `, [req.admin.church_id, title, description, event_date, end_date, location, is_recurring, recurrence_pattern, req.admin.admin_id]);
+    `, [req.admin.church_id, title, description, event_date, end_date, location, is_recurring, recurrence_pattern, req.admin.admin_id, is_published]);
     res.status(201).json(result.rows[0]);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -691,14 +692,14 @@ app.post('/api/church-admin/events', authenticateChurchAdmin, async (req, res) =
 
 app.put('/api/church-admin/events/:id', authenticateChurchAdmin, async (req, res) => {
   try {
-    const { title, description, event_date, end_date, location, is_recurring, recurrence_pattern } = req.body;
+    const { title, description, event_date, end_date, location, is_recurring, recurrence_pattern, is_published } = req.body;
     const result = await pool.query(`
       UPDATE church_events SET
         title = $1, description = $2, event_date = $3, end_date = $4,
-        location = $5, is_recurring = $6, recurrence_pattern = $7
-      WHERE id = $8 AND church_id = $9
+        location = $5, is_recurring = $6, recurrence_pattern = $7, is_published = $8
+      WHERE id = $9 AND church_id = $10
       RETURNING *
-    `, [title, description, event_date, end_date, location, is_recurring, recurrence_pattern, req.params.id, req.admin.church_id]);
+    `, [title, description, event_date, end_date, location, is_recurring, recurrence_pattern, is_published, req.params.id, req.admin.church_id]);
     res.json(result.rows[0]);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -732,49 +733,149 @@ app.get('/api/church-admin/photos', authenticateChurchAdmin, async (req, res) =>
 // Upload photo (base64)
 app.post('/api/church-admin/photos', authenticateChurchAdmin, async (req, res) => {
   try {
-    const { title, description, image_base64 } = req.body;
-    
-    // Upload to Cloudinary
-    const uploadResult = await cloudinary.uploader.upload(image_base64, {
-      folder: `churches/${req.admin.church_id}`,
-      transformation: [
-        { width: 1200, height: 800, crop: 'limit' },
-        { quality: 'auto', fetch_format: 'auto' }
-      ]
-    });
-    
+    const { title, description, photo_url, image_base64, caption, is_published } = req.body;
+
+    let imageUrl;
+    let thumbnailUrl;
+
+    // Check if photo_url is provided (URL-based upload)
+    if (photo_url) {
+      // Use the provided URL directly
+      imageUrl = photo_url;
+      thumbnailUrl = photo_url;
+    }
+    // Check if image_base64 is provided (file upload)
+    else if (image_base64) {
+      // Check if Cloudinary is configured
+      const cloudinaryConfigured = process.env.CLOUDINARY_CLOUD_NAME &&
+                                    process.env.CLOUDINARY_API_KEY &&
+                                    process.env.CLOUDINARY_API_SECRET &&
+                                    process.env.CLOUDINARY_CLOUD_NAME !== 'your_cloud_name';
+
+      if (!cloudinaryConfigured) {
+        return res.status(500).json({
+          error: 'Cloudinary is not configured. Please set up Cloudinary credentials in the .env file or use URL upload instead.'
+        });
+      }
+
+      // Upload to Cloudinary
+      const uploadResult = await cloudinary.uploader.upload(image_base64, {
+        folder: `churches/${req.admin.church_id}`,
+        transformation: [
+          { width: 1200, height: 800, crop: 'limit' },
+          { quality: 'auto', fetch_format: 'auto' }
+        ]
+      });
+
+      imageUrl = uploadResult.secure_url;
+      thumbnailUrl = uploadResult.secure_url;
+    }
+    else {
+      return res.status(400).json({ error: 'Either photo_url or image_base64 must be provided' });
+    }
+
+    // Use caption if provided, otherwise use description (for backward compatibility)
+    const finalCaption = caption || description || title;
+
     // Save to database
     const result = await pool.query(`
-      INSERT INTO church_photos (church_id, title, description, image_url, thumbnail_url, uploaded_by)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO church_photos (church_id, title, description, image_url, thumbnail_url, uploaded_by, is_published)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
-    `, [req.admin.church_id, title, description, uploadResult.secure_url, 
-        uploadResult.secure_url, req.admin.admin_id]);
-    
+    `, [req.admin.church_id, title, finalCaption, imageUrl, thumbnailUrl, req.admin.admin_id, is_published]);
+
     res.status(201).json(result.rows[0]);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
+// Upload photo using FormData (like logo upload - no Cloudinary needed)
+app.post('/api/admin/upload-gallery-photo', authenticateChurchAdmin, upload.single('photo'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const fs = require('fs');
+    const path = require('path');
+
+    // Create uploads directory if it doesn't exist
+    const uploadsDir = path.join(__dirname, 'public', 'uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    // Save file to disk
+    const fileName = `church-photo-${req.admin.church_id}-${Date.now()}${path.extname(req.file.originalname)}`;
+    const filePath = path.join(uploadsDir, fileName);
+    fs.writeFileSync(filePath, req.file.buffer);
+
+    // Generate URL for the uploaded file
+    const photoUrl = `http://localhost:${port}/uploads/${fileName}`;
+
+    // Get additional data from request body
+    const { caption, is_published } = req.body;
+    const title = caption || fileName;
+
+    // Save to database
+    const result = await pool.query(`
+      INSERT INTO church_photos (church_id, title, description, image_url, thumbnail_url, uploaded_by, is_published)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *
+    `, [req.admin.church_id, title, caption || '', photoUrl, photoUrl, req.admin.admin_id, is_published === 'true' || is_published === true]);
+
+    res.json({
+      photo: result.rows[0],
+      message: 'Photo uploaded successfully'
+    });
+  } catch (error) {
+    console.error('Error uploading gallery photo:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.delete('/api/church-admin/photos/:id', authenticateChurchAdmin, async (req, res) => {
   try {
-    // Get photo to delete from Cloudinary
+    const fs = require('fs');
+    const path = require('path');
+
+    // Get photo to delete
     const photo = await pool.query(
       'SELECT image_url FROM church_photos WHERE id = $1 AND church_id = $2',
       [req.params.id, req.admin.church_id]
     );
-    
+
     if (photo.rows.length > 0) {
-      // Extract public_id from URL and delete from Cloudinary
-      const publicId = photo.rows[0].image_url.split('/').slice(-2).join('/').split('.')[0];
-      await cloudinary.uploader.destroy(publicId);
+      const imageUrl = photo.rows[0].image_url;
+
+      // Check if it's a local file (starts with http://localhost)
+      if (imageUrl.includes('localhost') && imageUrl.includes('/uploads/')) {
+        // Extract filename from URL and delete local file
+        const filename = imageUrl.split('/uploads/')[1];
+        const filePath = path.join(__dirname, 'public', 'uploads', filename);
+
+        // Delete file if it exists
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      }
+      // If it's a Cloudinary URL, try to delete from Cloudinary (only if configured)
+      else if (imageUrl.includes('cloudinary')) {
+        const cloudinaryConfigured = process.env.CLOUDINARY_CLOUD_NAME &&
+                                      process.env.CLOUDINARY_CLOUD_NAME !== 'your_cloud_name';
+        if (cloudinaryConfigured) {
+          const publicId = imageUrl.split('/').slice(-2).join('/').split('.')[0];
+          await cloudinary.uploader.destroy(publicId);
+        }
+      }
+      // Otherwise it's an external URL - just delete from database
     }
-    
+
     // Delete from database
     await pool.query('DELETE FROM church_photos WHERE id = $1 AND church_id = $2',
       [req.params.id, req.admin.church_id]);
-    
+
     res.json({ message: 'Photo deleted' });
   } catch (error) {
     res.status(500).json({ error: error.message });

@@ -82,6 +82,17 @@
             >
           </div>
 
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                v-model="formData.is_published"
+                :disabled="saving"
+              >
+              <span>Publish immediately (visible on website)</span>
+            </label>
+          </div>
+
           <div class="form-actions">
             <button
               type="submit"
@@ -172,7 +183,8 @@ export default {
         description: '',
         event_date: '',
         event_time: '',
-        location: ''
+        location: '',
+        is_published: true
       },
       loading: true,
       saving: false,
@@ -230,7 +242,8 @@ export default {
         description: '',
         event_date: '',
         event_time: '',
-        location: ''
+        location: '',
+        is_published: true
       }
       this.error = null
       this.successMessage = null
@@ -243,7 +256,8 @@ export default {
         description: event.description,
         event_date: event.event_date.split('T')[0], // Convert to YYYY-MM-DD format
         event_time: event.event_time || '',
-        location: event.location || ''
+        location: event.location || '',
+        is_published: event.is_published !== false
       }
       this.error = null
       this.successMessage = null
@@ -257,7 +271,8 @@ export default {
         description: '',
         event_date: '',
         event_time: '',
-        location: ''
+        location: '',
+        is_published: true
       }
       this.error = null
     },
@@ -281,7 +296,8 @@ export default {
           description: this.formData.description,
           event_date: this.formData.event_date,
           event_time: this.formData.event_time || null,
-          location: this.formData.location || null
+          location: this.formData.location || null,
+          is_published: this.formData.is_published
         }
 
         if (this.editingEvent) {
@@ -309,7 +325,8 @@ export default {
           description: '',
           event_date: '',
           event_time: '',
-          location: ''
+          location: '',
+          is_published: true
         }
 
         await this.fetchEvents()
@@ -408,6 +425,23 @@ export default {
 
 .page-header h1 {
   margin: 0;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-weight: normal;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: auto;
+  cursor: pointer;
+}
+
+.checkbox-label span {
+  user-select: none;
 }
 
 .form-row {
