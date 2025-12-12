@@ -1,8 +1,9 @@
 <template>
   <div class="admin-layout">
-    <nav v-if="isLoggedIn">
+    <nav v-if="isLoggedIn" class="admin-nav">
       <div class="container">
         <div class="logo">
+          <img v-if="siteLogo" :src="siteLogo" alt="Logo" class="nav-logo">
           <h2>Church Admin</h2>
         </div>
         <div class="nav-links">
@@ -17,24 +18,61 @@
     </nav>
 
     <main class="container">
-      <router-view />
+      <router-view @login="checkLogin" />
     </main>
   </div>
 </template>
 
 <script>
+import axios from 'axios'
+
+const API_URL = import.meta.env.VITE_API_URL
+
 export default {
   name: 'AdminLayout',
-  computed: {
-    isLoggedIn() {
-      return !!localStorage.getItem('church_admin_token')
+  data() {
+    return {
+      token: null,
+      siteLogo: ''
     }
   },
+  computed: {
+    isLoggedIn() {
+      return !!this.token || !!localStorage.getItem('church_admin_token')
+    }
+  },
+  mounted() {
+    this.checkLogin()
+    this.fetchSiteSettings()
+    // Watch for storage changes
+    window.addEventListener('storage', this.checkLogin)
+  },
+  beforeUnmount() {
+    window.removeEventListener('storage', this.checkLogin)
+  },
   methods: {
+    async fetchSiteSettings() {
+      try {
+        const response = await axios.get(`${API_URL}/site-settings`)
+        this.siteLogo = response.data.site_logo_url || ''
+      } catch (err) {
+        console.error('Error fetching site settings:', err)
+      }
+    },
+    checkLogin() {
+      this.token = localStorage.getItem('church_admin_token')
+      this.$forceUpdate()
+    },
     logout() {
       localStorage.removeItem('church_admin_token')
       localStorage.removeItem('church_admin_user')
-      this.$router.push('/admin/login')
+      this.token = null
+      this.$router.push('/')
+    }
+  },
+  watch: {
+    '$route'() {
+      this.checkLogin()
     }
   }
 }
@@ -56,6 +94,21 @@ nav .container {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.nav-logo {
+  height: 40px;
+  width: 40px;
+  object-fit: contain;
+  background: white;
+  padding: 0.25rem;
+  border-radius: 50%;
 }
 
 .logo h2 {

@@ -57,6 +57,22 @@ const routes = [
         meta: { requiresAuth: true }
       }
     ]
+  },
+  {
+    path: '/super-admin',
+    children: [
+      {
+        path: 'login',
+        name: 'SuperAdminLogin',
+        component: () => import('./views/SuperAdminLogin.vue')
+      },
+      {
+        path: 'dashboard',
+        name: 'SuperAdminDashboard',
+        component: () => import('./views/SuperAdminDashboard.vue'),
+        meta: { requiresSuperAuth: true }
+      }
+    ]
   }
 ];
 
@@ -68,6 +84,8 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth && !localStorage.getItem('church_admin_token')) {
     next('/admin/login');
+  } else if (to.meta.requiresSuperAuth && !localStorage.getItem('super_admin_token')) {
+    next('/super-admin/login');
   } else {
     next();
   }

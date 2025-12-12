@@ -18,6 +18,9 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 
+// Serve static files from uploads directory
+app.use('/uploads', express.static('public/uploads'));
+
 // Database
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -53,10 +56,22 @@ const upload = multer({
 const authenticateChurchAdmin = (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1];
   if (!token) return res.status(401).json({ error: 'No token provided' });
-  
+
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
     if (err) return res.status(403).json({ error: 'Invalid token' });
     req.admin = decoded; // Contains admin_id and church_id
+    next();
+  });
+};
+
+const authenticateSuperAdmin = (req, res, next) => {
+  const token = req.headers['authorization']?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'No token provided' });
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    if (err) return res.status(403).json({ error: 'Invalid token' });
+    if (!decoded.is_super_admin) return res.status(403).json({ error: 'Super admin access required' });
+    req.superAdmin = decoded; // Contains super_admin_id and is_super_admin flag
     next();
   });
 };
@@ -69,7 +84,7 @@ const authenticateChurchAdmin = (req, res, next) => {
 app.get('/api/churches', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, name, slug, address, phone, email, pastor_name, description, logo_url FROM churches WHERE is_active = true ORDER BY name'
+      'SELECT id, name, slug, address, phone, email, pastor_name, description, logo_url, field_labels FROM churches WHERE is_active = true ORDER BY name'
     );
     res.json(result.rows);
   } catch (error) {
@@ -189,6 +204,302 @@ app.post('/api/church-admin/login', async (req, res) => {
 });
 
 // ============================================
+// SUPER ADMIN AUTH & ROUTES
+// ============================================
+
+// Super Admin Login
+app.post('/api/super-admin/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    const result = await pool.query(
+      'SELECT * FROM super_admins WHERE username = $1',
+      [username]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const superAdmin = result.rows[0];
+    const validPassword = await bcrypt.compare(password, superAdmin.password_hash);
+
+    if (!validPassword) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const token = jwt.sign(
+      { super_admin_id: superAdmin.id, is_super_admin: true },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    res.json({
+      token,
+      superAdmin: {
+        id: superAdmin.id,
+        username: superAdmin.username,
+        full_name: superAdmin.full_name,
+        email: superAdmin.email
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get site settings (Public)
+app.get('/api/site-settings', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT setting_key, setting_value FROM site_settings');
+    const settings = {};
+    result.rows.forEach(row => {
+      settings[row.setting_key] = row.setting_value;
+    });
+    res.json(settings);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update site settings (Super Admin)
+app.put('/api/super-admin/site-settings', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const { setting_key, setting_value } = req.body;
+
+    const result = await pool.query(`
+      INSERT INTO site_settings (setting_key, setting_value, updated_at)
+      VALUES ($1, $2, CURRENT_TIMESTAMP)
+      ON CONFLICT (setting_key)
+      DO UPDATE SET setting_value = $2, updated_at = CURRENT_TIMESTAMP
+      RETURNING *
+    `, [setting_key, setting_value]);
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Upload logo file (Super Admin)
+app.post('/api/super-admin/upload-logo', authenticateSuperAdmin, upload.single('logo'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const fs = require('fs');
+    const path = require('path');
+
+    // Create uploads directory if it doesn't exist
+    const uploadsDir = path.join(__dirname, 'public', 'uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    // Save file to disk
+    const fileName = `logo-${Date.now()}${path.extname(req.file.originalname)}`;
+    const filePath = path.join(uploadsDir, fileName);
+    fs.writeFileSync(filePath, req.file.buffer);
+
+    // Generate URL for the uploaded file
+    const logoUrl = `http://localhost:${port}/uploads/${fileName}`;
+
+    // Update site settings with new logo URL
+    await pool.query(`
+      INSERT INTO site_settings (setting_key, setting_value, updated_at)
+      VALUES ('site_logo_url', $1, CURRENT_TIMESTAMP)
+      ON CONFLICT (setting_key)
+      DO UPDATE SET setting_value = $1, updated_at = CURRENT_TIMESTAMP
+    `, [logoUrl]);
+
+    res.json({
+      url: logoUrl,
+      message: 'Logo uploaded successfully'
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all churches (Super Admin)
+app.get('/api/super-admin/churches', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT c.*,
+        (SELECT COUNT(*) FROM church_admins WHERE church_id = c.id) as admin_count,
+        (SELECT COUNT(*) FROM members WHERE church_id = c.id) as member_count,
+        (SELECT COUNT(*) FROM church_news WHERE church_id = c.id) as news_count
+      FROM churches c
+      ORDER BY c.created_at DESC
+    `);
+    res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get single church details (Super Admin)
+app.get('/api/super-admin/churches/:id', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM churches WHERE id = $1', [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Church not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create new church (Super Admin)
+app.post('/api/super-admin/churches', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const {
+      name,
+      slug,
+      address,
+      phone,
+      email,
+      pastor_name,
+      pastor_title,
+      description,
+      logo_url,
+      website_url,
+      service_times,
+      is_active
+    } = req.body;
+
+    // Check if slug already exists
+    const existingChurch = await pool.query('SELECT id FROM churches WHERE slug = $1', [slug]);
+    if (existingChurch.rows.length > 0) {
+      return res.status(400).json({ error: 'Church slug already exists' });
+    }
+
+    const result = await pool.query(`
+      INSERT INTO churches (
+        name, slug, address, phone, email, pastor_name, pastor_title,
+        description, logo_url, website_url, service_times, is_active
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      RETURNING *
+    `, [name, slug, address, phone, email, pastor_name, pastor_title, description, logo_url, website_url, service_times, is_active !== false]);
+
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update church (Super Admin)
+app.put('/api/super-admin/churches/:id', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const {
+      name,
+      slug,
+      address,
+      phone,
+      email,
+      pastor_name,
+      pastor_title,
+      description,
+      logo_url,
+      website_url,
+      service_times,
+      is_active
+    } = req.body;
+
+    // Check if new slug conflicts with another church
+    const existingChurch = await pool.query(
+      'SELECT id FROM churches WHERE slug = $1 AND id != $2',
+      [slug, req.params.id]
+    );
+    if (existingChurch.rows.length > 0) {
+      return res.status(400).json({ error: 'Church slug already exists' });
+    }
+
+    const result = await pool.query(`
+      UPDATE churches SET
+        name = $1,
+        slug = $2,
+        address = $3,
+        phone = $4,
+        email = $5,
+        pastor_name = $6,
+        pastor_title = $7,
+        description = $8,
+        logo_url = $9,
+        website_url = $10,
+        service_times = $11,
+        is_active = $12,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $13
+      RETURNING *
+    `, [name, slug, address, phone, email, pastor_name, pastor_title, description, logo_url, website_url, service_times, is_active, req.params.id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Church not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete church (Super Admin)
+app.delete('/api/super-admin/churches/:id', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const result = await pool.query('DELETE FROM churches WHERE id = $1 RETURNING *', [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Church not found' });
+    }
+    res.json({ message: 'Church deleted successfully', church: result.rows[0] });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get church admins for a specific church (Super Admin)
+app.get('/api/super-admin/churches/:id/admins', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, username, full_name, email, is_active, created_at FROM church_admins WHERE church_id = $1 ORDER BY created_at DESC',
+      [req.params.id]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create church admin (Super Admin)
+app.post('/api/super-admin/churches/:id/admins', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const { username, password, full_name, email } = req.body;
+    const churchId = req.params.id;
+
+    // Check if username exists
+    const existingAdmin = await pool.query('SELECT id FROM church_admins WHERE username = $1', [username]);
+    if (existingAdmin.rows.length > 0) {
+      return res.status(400).json({ error: 'Username already exists' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const result = await pool.query(`
+      INSERT INTO church_admins (church_id, username, password_hash, full_name, email, is_active)
+      VALUES ($1, $2, $3, $4, $5, true)
+      RETURNING id, username, full_name, email, is_active, created_at
+    `, [churchId, username, passwordHash, full_name, email]);
+
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
 // CHURCH ADMIN ROUTES (Protected)
 // ============================================
 
@@ -224,27 +535,61 @@ app.put('/api/church-admin/church-info', authenticateChurchAdmin, async (req, re
   try {
     const { church_id } = req.admin;
     const {
-      name, address, phone, email, website,
+      name, address, phone, email, website, logo_url,
       pastor_name, pastor_phone, pastor_email, pastor_bio,
       sunday_service_time, wednesday_service_time, other_service_times,
-      description, mission_statement
+      description, mission_statement, field_labels
     } = req.body;
-    
+
     const result = await pool.query(`
       UPDATE churches SET
-        name = $1, address = $2, phone = $3, email = $4, website = $5,
-        pastor_name = $6, pastor_phone = $7, pastor_email = $8, pastor_bio = $9,
-        sunday_service_time = $10, wednesday_service_time = $11, other_service_times = $12,
-        description = $13, mission_statement = $14,
+        name = $1, address = $2, phone = $3, email = $4, website = $5, logo_url = $6,
+        pastor_name = $7, pastor_phone = $8, pastor_email = $9, pastor_bio = $10,
+        sunday_service_time = $11, wednesday_service_time = $12, other_service_times = $13,
+        description = $14, mission_statement = $15, field_labels = $16,
         updated_at = NOW()
-      WHERE id = $15
+      WHERE id = $17
       RETURNING *
-    `, [name, address, phone, email, website, pastor_name, pastor_phone, pastor_email,
+    `, [name, address, phone, email, website, logo_url, pastor_name, pastor_phone, pastor_email,
         pastor_bio, sunday_service_time, wednesday_service_time, other_service_times,
-        description, mission_statement, church_id]);
-    
+        description, mission_statement, field_labels ? JSON.stringify(field_labels) : null, church_id]);
+
     res.json(result.rows[0]);
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Upload church logo
+app.post('/api/admin/upload-church-logo', authenticateChurchAdmin, upload.single('logo'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const fs = require('fs');
+    const path = require('path');
+
+    // Create uploads directory if it doesn't exist
+    const uploadsDir = path.join(__dirname, 'public', 'uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    // Save file to disk
+    const fileName = `church-logo-${req.admin.church_id}-${Date.now()}${path.extname(req.file.originalname)}`;
+    const filePath = path.join(uploadsDir, fileName);
+    fs.writeFileSync(filePath, req.file.buffer);
+
+    // Generate URL for the uploaded file
+    const logoUrl = `http://localhost:${port}/uploads/${fileName}`;
+
+    res.json({
+      url: logoUrl,
+      message: 'Logo uploaded successfully'
+    });
+  } catch (error) {
+    console.error('Error uploading church logo:', error);
     res.status(500).json({ error: error.message });
   }
 });

@@ -46,6 +46,69 @@
           ></textarea>
         </div>
 
+        <!-- Field Labels Customization -->
+        <div class="labels-section">
+          <h3>Customize Field Labels</h3>
+          <p class="section-description">Change how field names appear on your church page (e.g., change "Pastor" to "Priest" or "Father")</p>
+
+          <div class="form-row grid-2">
+            <div class="form-group">
+              <label for="label_pastor">Label for Pastor Field</label>
+              <input
+                id="label_pastor"
+                v-model="fieldLabels.pastor_name"
+                type="text"
+                placeholder="Pastor"
+                :disabled="saving"
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="label_address">Label for Address Field</label>
+              <input
+                id="label_address"
+                v-model="fieldLabels.address"
+                type="text"
+                placeholder="Address"
+                :disabled="saving"
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="label_phone">Label for Phone Field</label>
+              <input
+                id="label_phone"
+                v-model="fieldLabels.phone"
+                type="text"
+                placeholder="Phone"
+                :disabled="saving"
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="label_email">Label for Email Field</label>
+              <input
+                id="label_email"
+                v-model="fieldLabels.email"
+                type="text"
+                placeholder="Email"
+                :disabled="saving"
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="label_website">Label for Website Field</label>
+              <input
+                id="label_website"
+                v-model="fieldLabels.website"
+                type="text"
+                placeholder="Website"
+                :disabled="saving"
+              >
+            </div>
+          </div>
+        </div>
+
         <div class="form-row">
           <div class="form-group">
             <label for="pastor_name">Pastor Name</label>
@@ -105,23 +168,52 @@
           >
         </div>
 
-        <div class="form-group">
-          <label for="logo_url">Logo URL</label>
-          <input
-            id="logo_url"
-            v-model="church.logo_url"
-            type="url"
-            placeholder="https://example.com/logo.png"
-            :disabled="saving"
-          >
-          <small class="form-help">
-            Enter the URL of your church logo image. For best results, use a square image (e.g., 400x400px).
-          </small>
-        </div>
+        <div class="logo-section">
+          <label>Church Logo</label>
 
-        <div v-if="church.logo_url" class="logo-preview">
-          <label>Logo Preview:</label>
-          <img :src="church.logo_url" alt="Church logo preview" @error="handleImageError">
+          <div class="logo-upload-container">
+            <div class="upload-method">
+              <h4>Upload from Computer</h4>
+              <input
+                type="file"
+                ref="fileInput"
+                @change="handleFileSelect"
+                accept="image/*"
+                class="file-input"
+                :disabled="uploading || saving"
+              >
+              <button
+                type="button"
+                @click="uploadLogo"
+                class="btn btn-primary btn-sm"
+                :disabled="!selectedFile || uploading || saving"
+              >
+                {{ uploading ? 'Uploading...' : '📤 Upload Logo' }}
+              </button>
+              <p v-if="selectedFile" class="selected-file">Selected: {{ selectedFile.name }}</p>
+            </div>
+
+            <div class="upload-divider">OR</div>
+
+            <div class="upload-method">
+              <h4>Enter Logo URL</h4>
+              <input
+                v-model="church.logo_url"
+                type="url"
+                placeholder="https://example.com/logo.png"
+                :disabled="saving"
+              >
+            </div>
+          </div>
+
+          <small class="form-help">
+            Upload directly from your computer or enter an image URL. For best results, use a square image (e.g., 400x400px).
+          </small>
+
+          <div v-if="church.logo_url" class="logo-preview">
+            <label>Logo Preview:</label>
+            <img :src="church.logo_url" alt="Church logo preview" @error="handleImageError">
+          </div>
         </div>
 
         <div class="form-actions">
@@ -167,11 +259,21 @@ export default {
         website: '',
         logo_url: ''
       },
+      fieldLabels: {
+        pastor_name: 'Pastor',
+        address: 'Address',
+        phone: 'Phone',
+        email: 'Email',
+        website: 'Website'
+      },
       originalChurch: null,
+      originalLabels: null,
       loading: true,
       saving: false,
       error: null,
-      successMessage: null
+      successMessage: null,
+      selectedFile: null,
+      uploading: false
     }
   },
   async mounted() {
@@ -207,6 +309,23 @@ export default {
             logo_url: response.data.church.logo_url || ''
           }
           this.originalChurch = { ...this.church }
+
+          // Load field labels if they exist
+          console.log('Loaded field_labels from server:', response.data.church.field_labels)
+          if (response.data.church.field_labels) {
+            const loadedLabels = typeof response.data.church.field_labels === 'string'
+              ? JSON.parse(response.data.church.field_labels)
+              : response.data.church.field_labels
+
+            console.log('Parsed field labels:', loadedLabels)
+
+            this.fieldLabels = {
+              ...this.fieldLabels,
+              ...loadedLabels
+            }
+          }
+          console.log('Final fieldLabels:', this.fieldLabels)
+          this.originalLabels = { ...this.fieldLabels }
         }
       } catch (err) {
         if (err.response?.status === 401) {
@@ -238,9 +357,14 @@ export default {
           return
         }
 
-        await axios.put(
+        console.log('Saving field labels:', this.fieldLabels)
+
+        const response = await axios.put(
           `${API_URL}/church-admin/church-info`,
-          this.church,
+          {
+            ...this.church,
+            field_labels: this.fieldLabels
+          },
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -249,8 +373,11 @@ export default {
           }
         )
 
+        console.log('Server response field_labels:', response.data.field_labels)
+
         this.successMessage = 'Church information updated successfully!'
         this.originalChurch = { ...this.church }
+        this.originalLabels = { ...this.fieldLabels }
 
         // Update user info in localStorage
         const user = JSON.parse(localStorage.getItem('church_admin_user') || '{}')
@@ -277,13 +404,82 @@ export default {
     resetForm() {
       if (this.originalChurch) {
         this.church = { ...this.originalChurch }
-        this.error = null
-        this.successMessage = null
       }
+      if (this.originalLabels) {
+        this.fieldLabels = { ...this.originalLabels }
+      }
+      this.error = null
+      this.successMessage = null
     },
     handleImageError(event) {
       event.target.style.display = 'none'
       this.error = 'Failed to load logo image. Please check the URL.'
+    },
+    handleFileSelect(event) {
+      const file = event.target.files[0]
+      if (file) {
+        if (!file.type.startsWith('image/')) {
+          alert('Please select an image file')
+          this.$refs.fileInput.value = ''
+          return
+        }
+        if (file.size > 5 * 1024 * 1024) {
+          alert('File size must be less than 5MB')
+          this.$refs.fileInput.value = ''
+          return
+        }
+        this.selectedFile = file
+      }
+    },
+    async uploadLogo() {
+      console.log('Upload logo clicked')
+      if (!this.selectedFile) {
+        alert('Please select a file first')
+        return
+      }
+
+      console.log('Selected file:', this.selectedFile)
+
+      try {
+        this.uploading = true
+        this.error = null
+
+        const token = localStorage.getItem('church_admin_token')
+        console.log('Token exists:', !!token)
+        if (!token) {
+          this.$router.push('/admin/login')
+          return
+        }
+
+        const formData = new FormData()
+        formData.append('logo', this.selectedFile)
+
+        console.log('Uploading to:', `${API_URL}/admin/upload-church-logo`)
+
+        const response = await axios.post(`${API_URL}/admin/upload-church-logo`, formData, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        })
+
+        console.log('Upload response:', response.data)
+
+        this.church.logo_url = response.data.url
+        this.selectedFile = null
+        this.$refs.fileInput.value = ''
+
+        this.successMessage = 'Logo uploaded successfully! Don\'t forget to click "Save Changes" to update your church info.'
+        setTimeout(() => {
+          this.successMessage = null
+        }, 5000)
+      } catch (error) {
+        console.error('Upload error:', error)
+        console.error('Error response:', error.response?.data)
+        this.error = error.response?.data?.error || error.message || 'Failed to upload logo'
+      } finally {
+        this.uploading = false
+      }
     }
   }
 }
@@ -332,6 +528,77 @@ export default {
   font-weight: 500;
 }
 
+.labels-section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: var(--primary-color);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(30, 64, 175, 0.05));
+  border-radius: 0.5rem;
+  border: 1px solid var(--primary-color);
+  border-opacity: 0.1;
+}
+
+.labels-section h3 {
+  color: var(--primary-color);
+  margin-bottom: 0.5rem;
+  font-size: 1.25rem;
+}
+
+.section-description {
+  color: var(--gray-600);
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.logo-section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: var(--gray-50);
+  border-radius: 0.5rem;
+}
+
+.logo-upload-container {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  margin: 1rem 0;
+}
+
+.upload-method {
+  flex: 1;
+}
+
+.upload-method h4 {
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+  color: var(--gray-700);
+}
+
+.upload-divider {
+  font-weight: bold;
+  color: var(--gray-400);
+  align-self: center;
+  padding: 0 1rem;
+}
+
+.file-input {
+  margin-bottom: 0.75rem;
+  display: block;
+  width: 100%;
+}
+
+.selected-file {
+  font-size: 0.875rem;
+  color: var(--success-color);
+  margin-top: 0.5rem;
+}
+
+.logo-preview {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--gray-200);
+}
+
 .logo-preview img {
   max-width: 200px;
   max-height: 200px;
@@ -350,6 +617,15 @@ export default {
 @media (max-width: 768px) {
   .form-row.grid-2 {
     grid-template-columns: 1fr;
+  }
+
+  .logo-upload-container {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .upload-divider {
+    align-self: flex-start;
   }
 
   .form-actions {

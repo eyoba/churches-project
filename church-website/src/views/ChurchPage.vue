@@ -17,7 +17,7 @@
           <div v-if="church.logo_url" class="church-logo-large">
             <img :src="church.logo_url" :alt="church.name">
           </div>
-          <div class="church-icon-large" v-else>ê</div>
+          <div class="church-icon-large" v-else>ï¿½</div>
 
           <div class="church-details">
             <h1>{{ church.name }}</h1>
@@ -25,19 +25,19 @@
 
             <div class="contact-info">
               <div v-if="church.pastor_name" class="contact-item">
-                <strong>Pastor:</strong> {{ church.pastor_name }}
+                <strong>{{ getFieldLabel('pastor_name') }}:</strong> {{ church.pastor_name }}
               </div>
               <div v-if="church.address" class="contact-item">
-                <strong>Address:</strong> {{ church.address }}
+                <strong>{{ getFieldLabel('address') }}:</strong> {{ church.address }}
               </div>
               <div v-if="church.phone" class="contact-item">
-                <strong>Phone:</strong> {{ church.phone }}
+                <strong>{{ getFieldLabel('phone') }}:</strong> {{ church.phone }}
               </div>
               <div v-if="church.email" class="contact-item">
-                <strong>Email:</strong> {{ church.email }}
+                <strong>{{ getFieldLabel('email') }}:</strong> {{ church.email }}
               </div>
               <div v-if="church.website" class="contact-item">
-                <strong>Website:</strong> <a :href="church.website" target="_blank">{{ church.website }}</a>
+                <strong>{{ getFieldLabel('website') }}:</strong> <a :href="church.website" target="_blank">{{ church.website }}</a>
               </div>
             </div>
           </div>
@@ -236,6 +236,24 @@ export default {
     closeLightbox() {
       this.selectedPhoto = null
       document.body.style.overflow = ''
+    },
+    getFieldLabel(fieldName) {
+      const defaultLabels = {
+        pastor_name: 'Pastor',
+        address: 'Address',
+        phone: 'Phone',
+        email: 'Email',
+        website: 'Website'
+      }
+
+      if (this.church && this.church.field_labels) {
+        const labels = typeof this.church.field_labels === 'string'
+          ? JSON.parse(this.church.field_labels)
+          : this.church.field_labels
+        return labels[fieldName] || defaultLabels[fieldName]
+      }
+
+      return defaultLabels[fieldName]
     }
   }
 }

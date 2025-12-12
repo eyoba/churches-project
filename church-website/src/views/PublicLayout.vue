@@ -3,7 +3,7 @@
     <nav>
       <div class="container">
         <router-link to="/" class="logo">
-          <h2>Churches Directory</h2>
+          <h2>{{ navTitle || 'Churches Directory' }}</h2>
         </router-link>
         <div class="nav-links">
           <router-link to="/">Home</router-link>
@@ -18,15 +18,37 @@
 
     <footer>
       <div class="container text-center">
-        <p>&copy; 2024 Churches Directory. All rights reserved.</p>
+        <p>&copy; 2024 Eritrean Orthodox Tewahedo Church. All rights reserved.</p>
       </div>
     </footer>
   </div>
 </template>
 
 <script>
+import axios from 'axios'
+
+const API_URL = import.meta.env.VITE_API_URL
+
 export default {
-  name: 'PublicLayout'
+  name: 'PublicLayout',
+  data() {
+    return {
+      navTitle: ''
+    }
+  },
+  async mounted() {
+    await this.fetchSiteSettings()
+  },
+  methods: {
+    async fetchSiteSettings() {
+      try {
+        const response = await axios.get(`${API_URL}/site-settings`)
+        this.navTitle = response.data.nav_title || ''
+      } catch (err) {
+        console.error('Error fetching site settings:', err)
+      }
+    }
+  }
 }
 </script>
 
@@ -50,6 +72,14 @@ nav .container {
 
 .logo h2 {
   margin: 0;
+  line-height: 1.3;
+  font-size: 1.25rem;
+}
+
+.logo h2 br {
+  display: block;
+  content: "";
+  margin-top: 0.25rem;
 }
 
 .nav-links {

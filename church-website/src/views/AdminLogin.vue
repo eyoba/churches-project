@@ -115,10 +115,14 @@ export default {
 
           this.success = 'Login successful! Redirecting...'
 
-          // Redirect to dashboard
+          // Emit login event and redirect to dashboard
+          this.$emit('login')
           setTimeout(() => {
-            this.$router.push('/admin/dashboard')
-          }, 1000)
+            this.$router.push('/admin/dashboard').then(() => {
+              // Force page reload to update the layout
+              window.location.reload()
+            })
+          }, 500)
         } else {
           this.error = 'Login failed. Please try again.'
         }
