@@ -26,6 +26,8 @@ jobs:
 
       - name: Install and Build
         working-directory: ./church-website
+        env:
+          VITE_API_URL: https://church-backend-norway.azurewebsites.net/api
         run: |
           npm install
           npm run build
