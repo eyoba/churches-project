@@ -1,0 +1,56 @@
+name: Deploy Backend to Azure (Service Principal)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy-backend-sp.yml'
+  workflow_dispatch: # Allow manual trigger
+
+env:
+  AZURE_WEBAPP_NAME: church-backend-api    # Replace with your Azure Web App name
+  AZURE_WEBAPP_PACKAGE_PATH: 'backend'
+  NODE_VERSION: '18.x'
+  RESOURCE_GROUP: church-resources         # Replace with your resource group name
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: '${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/package-lock.json'
+
+    - name: Install dependencies
+      run: |
+        cd ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+        npm ci --omit=dev
+
+    - name: Login to Azure
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Deploy to Azure Web App
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}
+        package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+
+    - name: Logout from Azure
+      run: |
+        az logout
+
+    - name: Deployment notification
+      if: success()
+      run: |
+        echo "✅ Backend deployed successfully to https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net"

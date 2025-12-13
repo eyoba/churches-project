@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node server.js:*)",
+      "Bash(cat:*)",
+      "Bash(npm start)",
+      "Bash(az --version:*)",
+      "Bash(tasklist:*)"
+    ]
+  }
+}

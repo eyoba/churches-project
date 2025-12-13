@@ -12,6 +12,17 @@ require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 3001;
 
+// Helper function to get base URL (works for both local and Azure deployment)
+const getBaseUrl = (req) => {
+  if (process.env.BACKEND_URL) {
+    return process.env.BACKEND_URL; // Use env variable if set (for Azure)
+  }
+  // Fallback to request host for local development
+  const protocol = req.protocol || 'http';
+  const host = req.get('host') || `localhost:${port}`;
+  return `${protocol}://${host}`;
+};
+
 // Middleware
 app.use(cors({
   origin: [process.env.WEBSITE_URL, process.env.SMS_APP_URL],
@@ -22,10 +33,33 @@ app.use(express.json({ limit: '10mb' }));
 // Serve static files from uploads directory (with absolute path)
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
-// Database
+// Database connection pool with proper configuration
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  // Connection pool settings to handle idle connections
+  max: 20, // Maximum number of clients in the pool
+  min: 2, // Minimum number of clients in the pool (keep connections alive)
+  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
+  connectionTimeoutMillis: 10000, // Return an error after 10 seconds if connection cannot be established
+  // Keep connections alive to prevent Azure from closing them
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10000 // Start keepalive after 10 seconds
+});
+
+// Handle pool errors to prevent app crashes
+pool.on('error', (err, client) => {
+  console.error('Unexpected error on idle client', err);
+  // Don't exit - let the connection pool handle reconnection
+});
+
+// Test database connection on startup
+pool.query('SELECT NOW()', (err, res) => {
+  if (err) {
+    console.error('❌ Database connection failed:', err.message);
+  } else {
+    console.log('✅ Database connected successfully at', res.rows[0].now);
+  }
 });
 
 // Cloudinary configuration
@@ -304,7 +338,7 @@ app.post('/api/super-admin/upload-logo', authenticateSuperAdmin, upload.single('
     fs.writeFileSync(filePath, req.file.buffer);
 
     // Generate URL for the uploaded file
-    const logoUrl = `http://localhost:${port}/uploads/${fileName}`;
+    const logoUrl = `${getBaseUrl(req)}/uploads/${fileName}`;
 
     // Update site settings with new logo URL
     await pool.query(`
@@ -591,7 +625,7 @@ app.post('/api/admin/upload-church-logo', authenticateChurchAdmin, upload.single
     fs.writeFileSync(filePath, req.file.buffer);
 
     // Generate URL for the uploaded file
-    const logoUrl = `http://localhost:${port}/uploads/${fileName}`;
+    const logoUrl = `${getBaseUrl(req)}/uploads/${fileName}`;
 
     res.json({
       url: logoUrl,
@@ -819,7 +853,7 @@ app.post('/api/admin/upload-gallery-photo', authenticateChurchAdmin, upload.sing
     fs.writeFileSync(filePath, req.file.buffer);
 
     // Generate URL for the uploaded file
-    const photoUrl = `http://localhost:${port}/uploads/${fileName}`;
+    const photoUrl = `${getBaseUrl(req)}/uploads/${fileName}`;
 
     // Get additional data from request body
     const { caption, is_published } = req.body;
