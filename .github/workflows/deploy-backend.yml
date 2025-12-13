@@ -32,12 +32,17 @@ jobs:
         cd ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
         npm ci --production
 
+    - name: Create deployment package
+      run: |
+        cd ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+        zip -r ../deploy.zip .
+
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with:
         app-name: ${{ env.AZURE_WEBAPP_NAME }}
         publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-        package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+        package: deploy.zip
 
     - name: Deployment notification
       if: success()
