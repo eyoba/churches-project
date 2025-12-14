@@ -1,4 +1,5 @@
 name: Deploy Backend to Azure App Service
+# Force rebuild - 2025-12-14
 
 on:
   push:
