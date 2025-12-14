@@ -17,6 +17,31 @@
     </div>
 
     <div class="container">
+      <!-- Field Labels Information Section -->
+      <div v-if="globalFieldLabels && hasAnyLabel()" class="field-labels-info card">
+        <h3>📋 Field Information</h3>
+        <div class="labels-grid">
+          <div v-if="globalFieldLabels.pastor_name" class="label-item">
+            <strong>{{ globalFieldLabels.pastor_name }}</strong>
+          </div>
+          <div v-if="globalFieldLabels.address" class="label-item">
+            <strong>{{ globalFieldLabels.address }}</strong>
+          </div>
+          <div v-if="globalFieldLabels.phone" class="label-item">
+            <strong>{{ globalFieldLabels.phone }}</strong>
+          </div>
+          <div v-if="globalFieldLabels.email" class="label-item">
+            <strong>{{ globalFieldLabels.email }}</strong>
+          </div>
+          <div v-if="globalFieldLabels.website" class="label-item">
+            <strong>{{ globalFieldLabels.website }}</strong>
+          </div>
+          <div v-if="globalFieldLabels.facebook" class="label-item">
+            <strong>{{ globalFieldLabels.facebook }}</strong>
+          </div>
+        </div>
+      </div>
+
       <div v-if="loading" class="spinner"></div>
 
       <div v-else-if="error" class="alert alert-error">
@@ -147,6 +172,10 @@ export default {
 
       // Fall back to default
       return defaultLabels[fieldName]
+    },
+    hasAnyLabel() {
+      if (!this.globalFieldLabels) return false
+      return Object.values(this.globalFieldLabels).some(label => label && label.trim() !== '')
     },
     getSecondaryColor(hexColor) {
       // Convert hex to RGB
@@ -291,5 +320,51 @@ export default {
 .info-item {
   margin-bottom: 0.5rem;
   color: var(--gray-700);
+}
+
+.field-labels-info {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-left: 4px solid var(--primary-color);
+}
+
+.field-labels-info h3 {
+  margin: 0 0 1rem 0;
+  color: var(--gray-800);
+  font-size: 1.25rem;
+}
+
+.labels-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.label-item {
+  padding: 0.75rem 1rem;
+  background: white;
+  border-radius: 0.375rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  font-size: 0.95rem;
+  color: var(--primary-color);
+}
+
+.label-item strong {
+  display: block;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .labels-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .label-item {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.875rem;
+  }
 }
 </style>
