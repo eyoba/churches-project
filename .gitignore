@@ -36,3 +36,8 @@ Thumbs.db
 # PWA service worker cache
 sw.js
 workbox-*.js
+
+# Uploaded files (images should be in Cloudinary, not git)
+# TEMPORARY: Uncomment these lines once Cloudinary is set up
+# backend/public/uploads/
+# public/uploads/
