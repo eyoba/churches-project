@@ -1,5 +1,4 @@
-name: Deploy Frontend to Azure Static Web Apps
-# Force rebuild - 2025-12-14
+name: Deploy Frontend to Azure App Service
 
 on:
   push:
@@ -10,50 +9,40 @@ on:
       - '.github/workflows/deploy-frontend.yml'
   workflow_dispatch:
 
+env:
+  AZURE_WEBAPP_NAME: eritewahedo-frontend
+  NODE_VERSION: '18.x'
+
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
-    name: Build and Deploy
-    env:
-      AZURE_STATIC_WEB_APPS_API_TOKEN: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+    name: Build and Deploy Frontend
 
     steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: true
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18.x'
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
 
-      - name: Install and Build
-        working-directory: ./church-website
-        env:
-          VITE_API_URL: https://church-backend-norway.azurewebsites.net/api
-        run: |
-          npm install
-          npm run build
+    - name: Install dependencies and build
+      working-directory: ./church-website
+      env:
+        VITE_API_URL: https://church-backend-norway.azurewebsites.net/api
+      run: |
+        npm install
+        npm run build
 
-      - name: Check Secret Exists
-        run: |
-          if [ -z "${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}" ]; then
-            echo "ERROR: AZURE_STATIC_WEB_APPS_API_TOKEN is empty or not set"
-            exit 1
-          else
-            echo "Secret exists and has length: ${#AZURE_STATIC_WEB_APPS_API_TOKEN}"
-          fi
-        env:
-          AZURE_STATIC_WEB_APPS_API_TOKEN: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+    - name: Deploy to Azure Web App
+      uses: azure/webapps-deploy@v3
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}
+        publish-profile: ${{ secrets.AZURE_FRONTEND_PUBLISH_PROFILE }}
+        package: ./church-website
 
-      - name: Deploy to Azure Static Web Apps
-        uses: Azure/static-web-apps-deploy@v1
-        with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          action: "upload"
-          app_location: "church-website/dist"
-          api_location: ""
-          output_location: ""
-          skip_app_build: true
-          skip_api_build: true
+    - name: Deployment notification
+      if: success()
+      run: |
+        echo "✅ Frontend deployed successfully to https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net"
