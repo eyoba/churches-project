@@ -11,36 +11,34 @@
           <div class="hero-text">
             <h2>{{ siteTitle || 'ኤርትራ ኦርቶዶክስ ተዋሕዶ ቤተክርስቲያን Eritrean Orthodox Tewahedo Church' }}</h2>
             <p class="lead">{{ siteSubtitle || 'Find and connect with churches in your community' }}</p>
+
+            <!-- Church Information Fields -->
+            <div v-if="globalFieldLabels && globalChurchInfo && hasAnyGlobalInfo()" class="church-info-grid">
+              <div v-if="globalFieldLabels.pastor_name && globalChurchInfo.pastor_name">
+                <strong>{{ globalFieldLabels.pastor_name }}:</strong> {{ globalChurchInfo.pastor_name }}
+              </div>
+              <div v-if="globalFieldLabels.address && globalChurchInfo.address">
+                <strong>{{ globalFieldLabels.address }}:</strong> {{ globalChurchInfo.address }}
+              </div>
+              <div v-if="globalFieldLabels.phone && globalChurchInfo.phone">
+                <strong>{{ globalFieldLabels.phone }}:</strong> {{ globalChurchInfo.phone }}
+              </div>
+              <div v-if="globalFieldLabels.email && globalChurchInfo.email">
+                <strong>{{ globalFieldLabels.email }}:</strong> {{ globalChurchInfo.email }}
+              </div>
+              <div v-if="globalFieldLabels.website && globalChurchInfo.website">
+                <strong>{{ globalFieldLabels.website }}:</strong> <a :href="globalChurchInfo.website" target="_blank">{{ globalChurchInfo.website }}</a>
+              </div>
+              <div v-if="globalFieldLabels.facebook && globalChurchInfo.facebook">
+                <strong>{{ globalFieldLabels.facebook }}:</strong> <a :href="globalChurchInfo.facebook" target="_blank">Visit Page</a>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
     <div class="container">
-      <!-- Field Labels Information Section -->
-      <div v-if="globalFieldLabels && hasAnyLabel()" class="field-labels-info card">
-        <h3>📋 Field Information</h3>
-        <div class="labels-grid">
-          <div v-if="globalFieldLabels.pastor_name" class="label-item">
-            <strong>{{ globalFieldLabels.pastor_name }}</strong>
-          </div>
-          <div v-if="globalFieldLabels.address" class="label-item">
-            <strong>{{ globalFieldLabels.address }}</strong>
-          </div>
-          <div v-if="globalFieldLabels.phone" class="label-item">
-            <strong>{{ globalFieldLabels.phone }}</strong>
-          </div>
-          <div v-if="globalFieldLabels.email" class="label-item">
-            <strong>{{ globalFieldLabels.email }}</strong>
-          </div>
-          <div v-if="globalFieldLabels.website" class="label-item">
-            <strong>{{ globalFieldLabels.website }}</strong>
-          </div>
-          <div v-if="globalFieldLabels.facebook" class="label-item">
-            <strong>{{ globalFieldLabels.facebook }}</strong>
-          </div>
-        </div>
-      </div>
 
       <div v-if="loading" class="spinner"></div>
 
@@ -103,7 +101,8 @@ export default {
       siteSubtitle: '',
       homeSectionTitle: '',
       backgroundColor: '#3b82f6',
-      globalFieldLabels: null
+      globalFieldLabels: null,
+      globalChurchInfo: null
     }
   },
   async mounted() {
@@ -126,6 +125,15 @@ export default {
             this.globalFieldLabels = JSON.parse(response.data.global_field_labels)
           } catch (e) {
             console.error('Error parsing global field labels:', e)
+          }
+        }
+
+        // Load global church info
+        if (response.data.global_church_info) {
+          try {
+            this.globalChurchInfo = JSON.parse(response.data.global_church_info)
+          } catch (e) {
+            console.error('Error parsing global church info:', e)
           }
         }
       } catch (err) {
@@ -177,6 +185,10 @@ export default {
       if (!this.globalFieldLabels) return false
       return Object.values(this.globalFieldLabels).some(label => label && label.trim() !== '')
     },
+    hasAnyGlobalInfo() {
+      if (!this.globalChurchInfo) return false
+      return Object.values(this.globalChurchInfo).some(value => value && value.trim() !== '')
+    },
     getSecondaryColor(hexColor) {
       // Convert hex to RGB
       const r = parseInt(hexColor.slice(1, 3), 16)
@@ -196,14 +208,14 @@ export default {
 .hero {
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
   color: white;
-  padding: 3rem 0;
-  margin-bottom: 3rem;
+  padding: 2rem 0;
+  margin-bottom: 2rem;
 }
 
 .hero-content {
   display: flex;
   align-items: center;
-  gap: 2rem;
+  gap: 1.5rem;
   justify-content: center;
 }
 
@@ -217,27 +229,54 @@ export default {
 }
 
 .hero h2 {
-  font-size: 2rem;
-  margin: 0 0 1rem 0;
+  font-size: 1.5rem;
+  margin: 0 0 0.75rem 0;
   font-weight: 600;
-  line-height: 1.4;
+  line-height: 1.3;
 }
 
 .lead {
-  font-size: 1.25rem;
+  font-size: 1rem;
   opacity: 0.9;
-  margin: 0;
+  margin: 0 0 1rem 0;
+}
+
+.church-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem 1rem;
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  color: white;
+}
+
+.church-info-grid div {
+  line-height: 1.6;
+}
+
+.church-info-grid strong {
+  opacity: 0.9;
+}
+
+.church-info-grid a {
+  color: white;
+  text-decoration: underline;
+  opacity: 0.95;
+}
+
+.church-info-grid a:hover {
+  opacity: 1;
 }
 
 .site-logo {
-  width: 220px;
-  height: 220px;
+  width: 150px;
+  height: 150px;
   object-fit: contain;
   background: white;
   padding: 0.5rem;
   border-radius: 50%;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.2);
-  border: 5px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+  border: 4px solid rgba(255, 255, 255, 0.9);
   transition: transform 0.3s ease;
 }
 
@@ -246,19 +285,29 @@ export default {
 }
 
 .site-logo-placeholder {
-  font-size: 7rem;
-  width: 220px;
-  height: 220px;
+  font-size: 5rem;
+  width: 150px;
+  height: 150px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: white;
   border-radius: 50%;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.2);
-  border: 5px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+  border: 4px solid rgba(255, 255, 255, 0.9);
+}
+
+@media (max-width: 992px) {
+  .church-info-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 768px) {
+  .hero {
+    padding: 1.5rem 0;
+  }
+
   .hero-content {
     flex-direction: column;
     text-align: center;
@@ -269,18 +318,25 @@ export default {
   }
 
   .hero h2 {
-    font-size: 1.75rem;
+    font-size: 1.25rem;
   }
 
   .site-logo,
   .site-logo-placeholder {
-    width: 160px;
-    height: 160px;
-    font-size: 5rem;
+    width: 120px;
+    height: 120px;
+    font-size: 3.5rem;
   }
 
   .lead {
-    font-size: 1rem;
+    font-size: 0.875rem;
+  }
+
+  .church-info-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    text-align: left;
+    font-size: 0.8rem;
   }
 }
 
@@ -293,32 +349,39 @@ export default {
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
+.church-card h3 {
+  font-size: 1.125rem;
+  margin: 0 0 0.5rem 0;
+}
+
 .church-logo {
   width: 100%;
-  height: 200px;
-  object-fit: cover;
+  height: 120px;
+  object-fit: contain;
   border-radius: 0.5rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
+  background: #f8f9fa;
 }
 
 .church-icon {
-  font-size: 4rem;
+  font-size: 3rem;
   text-align: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .church-description {
   color: var(--gray-600);
-  min-height: 3rem;
-}
-
-.church-info {
-  margin: 1rem 0;
+  min-height: 2.5rem;
   font-size: 0.875rem;
 }
 
+.church-info {
+  margin: 0.75rem 0;
+  font-size: 0.8rem;
+}
+
 .info-item {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
   color: var(--gray-700);
 }
 
@@ -335,36 +398,52 @@ export default {
   font-size: 1.25rem;
 }
 
-.labels-grid {
+.field-info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: 1fr 1fr;
   gap: 1rem;
 }
 
-.label-item {
-  padding: 0.75rem 1rem;
-  background: white;
-  border-radius: 0.375rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  text-align: center;
+.field-info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  color: var(--gray-700);
   font-size: 0.95rem;
-  color: var(--primary-color);
 }
 
-.label-item strong {
-  display: block;
-  font-weight: 600;
+.field-info-item strong {
+  color: var(--gray-800);
+  min-width: 100px;
+  flex-shrink: 0;
+}
+
+.field-info-item span {
+  flex: 1;
+}
+
+.field-info-item a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.field-info-item a:hover {
+  text-decoration: underline;
 }
 
 @media (max-width: 768px) {
-  .labels-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.75rem;
+  .field-info-grid {
+    grid-template-columns: 1fr;
   }
 
-  .label-item {
-    padding: 0.6rem 0.8rem;
-    font-size: 0.875rem;
+  .field-info-item {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .field-info-item strong {
+    min-width: auto;
   }
 }
 </style>

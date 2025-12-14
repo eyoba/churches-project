@@ -141,87 +141,152 @@
     </div>
 
     <!-- Customize Field Labels -->
-    <div class="field-labels-section card">
-      <h2>🏷️ Customize Field Labels</h2>
+    <div class="labels-section">
+      <h3>Customize Field Labels</h3>
       <p class="section-description">
-        Change how field names appear on your church pages (e.g., change "Pastor" to "Priest" or "Father").
-        These labels will be used on the home page below the church names.
+        Change how field names appear on your church page (e.g., change "Pastor" to "Priest" or "Father")
       </p>
-      <div class="field-labels-container">
+
+      <div class="form-row grid-2">
         <div class="form-group">
-          <label>Label for Pastor Field</label>
+          <label for="label_pastor">Label for Pastor Field</label>
           <input
+            id="label_pastor"
             type="text"
             v-model="globalFieldLabels.pastor_name"
             placeholder="Pastor"
-            class="text-input"
           >
         </div>
 
         <div class="form-group">
-          <label>Label for Address Field</label>
+          <label for="label_address">Label for Address Field</label>
           <input
+            id="label_address"
             type="text"
             v-model="globalFieldLabels.address"
             placeholder="Address"
-            class="text-input"
           >
         </div>
 
         <div class="form-group">
-          <label>Label for Phone Field</label>
+          <label for="label_phone">Label for Phone Field</label>
           <input
+            id="label_phone"
             type="text"
             v-model="globalFieldLabels.phone"
             placeholder="Phone"
-            class="text-input"
           >
         </div>
 
         <div class="form-group">
-          <label>Label for Email Field</label>
+          <label for="label_email">Label for Email Field</label>
           <input
+            id="label_email"
             type="text"
             v-model="globalFieldLabels.email"
             placeholder="Email"
-            class="text-input"
           >
         </div>
 
         <div class="form-group">
-          <label>Label for Website Field</label>
+          <label for="label_website">Label for Website Field</label>
           <input
+            id="label_website"
             type="text"
             v-model="globalFieldLabels.website"
             placeholder="Website"
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="label_facebook">Label for Facebook Field</label>
+          <input
+            id="label_facebook"
+            type="text"
+            v-model="globalFieldLabels.facebook"
+            placeholder="Facebook"
+          >
+        </div>
+      </div>
+
+      <button @click="updateFieldLabels" class="btn btn-primary">
+        💾 Save Field Labels
+      </button>
+
+      <h3 style="margin-top: 2rem;">Church Information Values</h3>
+      <p class="section-description">
+        Enter the actual information for your church (this data will be displayed on the homepage)
+      </p>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Pastor Name</label>
+          <input
+            type="text"
+            v-model="globalChurchInfo.pastor_name"
+            placeholder="Pastor's full name"
+            class="text-input"
+          >
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Address</label>
+        <textarea
+          v-model="globalChurchInfo.address"
+          placeholder="Full church address"
+          rows="2"
+          class="text-input"
+        ></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input
+            type="tel"
+            v-model="globalChurchInfo.phone"
+            placeholder="(123) 456-7890"
             class="text-input"
           >
         </div>
 
         <div class="form-group">
-          <label>Label for Facebook Field</label>
+          <label>Email Address</label>
           <input
-            type="text"
-            v-model="globalFieldLabels.facebook"
-            placeholder="Facebook"
+            type="email"
+            v-model="globalChurchInfo.email"
+            placeholder="contact@church.com"
+            class="text-input"
+          >
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Website</label>
+          <input
+            type="url"
+            v-model="globalChurchInfo.website"
+            placeholder="https://www.yourchurch.com"
             class="text-input"
           >
         </div>
 
-        <button @click="updateFieldLabels" class="btn btn-primary">
-          💾 Save Field Labels
-        </button>
-
-        <div class="preview-box">
-          <h4>Preview:</h4>
-          <div class="preview-content">
-            <p><strong>{{ globalFieldLabels.pastor_name || 'Pastor' }}:</strong> Father John Smith</p>
-            <p><strong>{{ globalFieldLabels.address || 'Address' }}:</strong> 123 Main Street, Oslo</p>
-            <p><strong>{{ globalFieldLabels.phone || 'Phone' }}:</strong> +47 123 456 789</p>
-            <p><strong>{{ globalFieldLabels.email || 'Email' }}:</strong> info@church.com</p>
-          </div>
+        <div class="form-group">
+          <label>Facebook Page</label>
+          <input
+            type="url"
+            v-model="globalChurchInfo.facebook"
+            placeholder="https://www.facebook.com/yourchurch"
+            class="text-input"
+          >
         </div>
       </div>
+
+      <button @click="updateGlobalChurchInfo" class="btn btn-primary">
+        💾 Save Field Values
+      </button>
     </div>
 
     <div class="actions">
@@ -463,6 +528,14 @@ export default {
         email: '',
         website: '',
         facebook: ''
+      },
+      globalChurchInfo: {
+        pastor_name: '',
+        address: '',
+        phone: '',
+        email: '',
+        website: '',
+        facebook: ''
       }
     }
   },
@@ -509,6 +582,15 @@ export default {
             this.globalFieldLabels = JSON.parse(response.data.global_field_labels)
           } catch (e) {
             console.error('Error parsing global field labels:', e)
+          }
+        }
+
+        // Load global church info
+        if (response.data.global_church_info) {
+          try {
+            this.globalChurchInfo = JSON.parse(response.data.global_church_info)
+          } catch (e) {
+            console.error('Error parsing global church info:', e)
           }
         }
       } catch (error) {
@@ -635,6 +717,24 @@ export default {
         await this.fetchSiteSettings()
       } catch (error) {
         alert(error.response?.data?.error || 'Failed to update field labels')
+      }
+    },
+    async updateGlobalChurchInfo() {
+      try {
+        const token = localStorage.getItem('super_admin_token')
+
+        // Save global church info as JSON string
+        await axios.put(`${API_URL}/super-admin/site-settings`, {
+          setting_key: 'global_church_info',
+          setting_value: JSON.stringify(this.globalChurchInfo)
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+
+        alert('✅ Church information updated successfully!')
+        await this.fetchSiteSettings()
+      } catch (error) {
+        alert(error.response?.data?.error || 'Failed to update church information')
       }
     },
     async fetchChurches() {
@@ -1173,5 +1273,115 @@ code {
   margin-top: 0.25rem;
   font-size: 0.875rem;
   color: #666;
+}
+
+/* Labels Section Styling (matching ChurchInfo.vue) */
+.labels-section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(30, 64, 175, 0.05));
+  border-radius: 0.5rem;
+  border: 1px solid rgba(37, 99, 235, 0.1);
+}
+
+.labels-section h3 {
+  color: #2563eb;
+  margin-bottom: 0.5rem;
+  font-size: 1.25rem;
+}
+
+.section-description {
+  color: #666;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.two-column-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+.labels-editor,
+.labels-preview {
+  display: flex;
+  flex-direction: column;
+}
+
+.labels-editor h3,
+.labels-preview h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.125rem;
+  color: var(--gray-800);
+  border-bottom: 2px solid var(--primary-color);
+  padding-bottom: 0.5rem;
+}
+
+.labels-preview {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e0e0e0;
+}
+
+.labels-preview .preview-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.labels-preview .preview-item {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.labels-preview .preview-item:last-child {
+  border-bottom: none;
+}
+
+.labels-preview .preview-item strong {
+  min-width: 100px;
+  color: var(--gray-800);
+  flex-shrink: 0;
+}
+
+.labels-preview .preview-item span {
+  flex: 1;
+  color: var(--gray-700);
+}
+
+.labels-preview .preview-item a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.labels-preview .preview-item a:hover {
+  text-decoration: underline;
+}
+
+.labels-preview .text-gray {
+  color: #999;
+  font-style: italic;
+}
+
+@media (max-width: 968px) {
+  .two-column-layout {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
 }
 </style>
