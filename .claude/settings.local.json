@@ -15,7 +15,8 @@
       "Bash(az webapp restart:*)",
       "Bash(where:*)",
       "Bash(az staticwebapp secrets list:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(gh run list:*)"
     ]
   }
 }
