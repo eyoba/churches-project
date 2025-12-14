@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_WEBAPP_NAME: eritewahedo-frontend
+  AZURE_WEBAPP_NAME: fnatewahedo
   NODE_VERSION: '18.x'
 
 jobs:
