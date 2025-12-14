@@ -5,7 +5,16 @@
       "Bash(cat:*)",
       "Bash(npm start)",
       "Bash(az --version:*)",
-      "Bash(tasklist:*)"
+      "Bash(tasklist:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)",
+      "Bash(git stash pop:*)",
+      "Bash(az webapp restart:*)",
+      "Bash(where:*)",
+      "Bash(az staticwebapp secrets list:*)"
     ]
   }
 }
