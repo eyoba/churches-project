@@ -140,6 +140,90 @@
       </div>
     </div>
 
+    <!-- Customize Field Labels -->
+    <div class="field-labels-section card">
+      <h2>🏷️ Customize Field Labels</h2>
+      <p class="section-description">
+        Change how field names appear on your church pages (e.g., change "Pastor" to "Priest" or "Father").
+        These labels will be used on the home page below the church names.
+      </p>
+      <div class="field-labels-container">
+        <div class="form-group">
+          <label>Label for Pastor Field</label>
+          <input
+            type="text"
+            v-model="globalFieldLabels.pastor_name"
+            placeholder="Pastor"
+            class="text-input"
+          >
+        </div>
+
+        <div class="form-group">
+          <label>Label for Address Field</label>
+          <input
+            type="text"
+            v-model="globalFieldLabels.address"
+            placeholder="Address"
+            class="text-input"
+          >
+        </div>
+
+        <div class="form-group">
+          <label>Label for Phone Field</label>
+          <input
+            type="text"
+            v-model="globalFieldLabels.phone"
+            placeholder="Phone"
+            class="text-input"
+          >
+        </div>
+
+        <div class="form-group">
+          <label>Label for Email Field</label>
+          <input
+            type="text"
+            v-model="globalFieldLabels.email"
+            placeholder="Email"
+            class="text-input"
+          >
+        </div>
+
+        <div class="form-group">
+          <label>Label for Website Field</label>
+          <input
+            type="text"
+            v-model="globalFieldLabels.website"
+            placeholder="Website"
+            class="text-input"
+          >
+        </div>
+
+        <div class="form-group">
+          <label>Label for Facebook Field</label>
+          <input
+            type="text"
+            v-model="globalFieldLabels.facebook"
+            placeholder="Facebook"
+            class="text-input"
+          >
+        </div>
+
+        <button @click="updateFieldLabels" class="btn btn-primary">
+          💾 Save Field Labels
+        </button>
+
+        <div class="preview-box">
+          <h4>Preview:</h4>
+          <div class="preview-content">
+            <p><strong>{{ globalFieldLabels.pastor_name || 'Pastor' }}:</strong> Father John Smith</p>
+            <p><strong>{{ globalFieldLabels.address || 'Address' }}:</strong> 123 Main Street, Oslo</p>
+            <p><strong>{{ globalFieldLabels.phone || 'Phone' }}:</strong> +47 123 456 789</p>
+            <p><strong>{{ globalFieldLabels.email || 'Email' }}:</strong> info@church.com</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="actions">
       <button @click="showAddChurchModal = true" class="btn btn-primary">
         ➕ Add New Church
@@ -371,7 +455,15 @@ export default {
       siteTitle: '',
       siteSubtitle: '',
       navTitle: '',
-      homeBackgroundColor: '#3b82f6'
+      homeBackgroundColor: '#3b82f6',
+      globalFieldLabels: {
+        pastor_name: '',
+        address: '',
+        phone: '',
+        email: '',
+        website: '',
+        facebook: ''
+      }
     }
   },
   computed: {
@@ -410,6 +502,15 @@ export default {
         this.siteSubtitle = response.data.site_subtitle || ''
         this.navTitle = response.data.nav_title || ''
         this.homeBackgroundColor = response.data.background_color || '#3b82f6'
+
+        // Load global field labels
+        if (response.data.global_field_labels) {
+          try {
+            this.globalFieldLabels = JSON.parse(response.data.global_field_labels)
+          } catch (e) {
+            console.error('Error parsing global field labels:', e)
+          }
+        }
       } catch (error) {
         console.error('Error fetching site settings:', error)
       }
@@ -516,6 +617,24 @@ export default {
         alert('Logo updated successfully!')
       } catch (error) {
         alert(error.response?.data?.error || 'Failed to update logo')
+      }
+    },
+    async updateFieldLabels() {
+      try {
+        const token = localStorage.getItem('super_admin_token')
+
+        // Save global field labels as JSON string
+        await axios.put(`${API_URL}/super-admin/site-settings`, {
+          setting_key: 'global_field_labels',
+          setting_value: JSON.stringify(this.globalFieldLabels)
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+
+        alert('✅ Field labels updated successfully! These labels will now appear on all church pages.')
+        await this.fetchSiteSettings()
+      } catch (error) {
+        alert(error.response?.data?.error || 'Failed to update field labels')
       }
     },
     async fetchChurches() {

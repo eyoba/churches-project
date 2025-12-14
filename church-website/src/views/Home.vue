@@ -77,7 +77,8 @@ export default {
       siteTitle: '',
       siteSubtitle: '',
       homeSectionTitle: '',
-      backgroundColor: '#3b82f6'
+      backgroundColor: '#3b82f6',
+      globalFieldLabels: null
     }
   },
   async mounted() {
@@ -93,6 +94,15 @@ export default {
         this.siteSubtitle = response.data.site_subtitle || ''
         this.homeSectionTitle = response.data.home_section_title || ''
         this.backgroundColor = response.data.background_color || '#3b82f6'
+
+        // Load global field labels
+        if (response.data.global_field_labels) {
+          try {
+            this.globalFieldLabels = JSON.parse(response.data.global_field_labels)
+          } catch (e) {
+            console.error('Error parsing global field labels:', e)
+          }
+        }
       } catch (err) {
         console.error('Error fetching site settings:', err)
       }
@@ -120,13 +130,22 @@ export default {
         facebook: 'Facebook'
       }
 
+      // Priority: church-specific labels > global labels > default labels
       if (church.field_labels) {
         const labels = typeof church.field_labels === 'string'
           ? JSON.parse(church.field_labels)
           : church.field_labels
-        return labels[fieldName] || defaultLabels[fieldName]
+        if (labels[fieldName]) {
+          return labels[fieldName]
+        }
       }
 
+      // Use global field labels if available
+      if (this.globalFieldLabels && this.globalFieldLabels[fieldName]) {
+        return this.globalFieldLabels[fieldName]
+      }
+
+      // Fall back to default
       return defaultLabels[fieldName]
     },
     getSecondaryColor(hexColor) {
