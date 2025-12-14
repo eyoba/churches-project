@@ -356,7 +356,7 @@ export default {
 
 .church-logo {
   width: 100%;
-  height: 120px;
+  height: 140px;
   object-fit: contain;
   border-radius: 0.5rem;
   margin-bottom: 0.75rem;
@@ -364,7 +364,7 @@ export default {
 }
 
 .church-icon {
-  font-size: 3rem;
+  font-size: 3.5rem;
   text-align: center;
   margin-bottom: 0.75rem;
 }
