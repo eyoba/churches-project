@@ -85,9 +85,16 @@ export default {
     }
   },
   mounted() {
-    // Check if already logged in
-    const token = localStorage.getItem('church_admin_token')
-    if (token) {
+    // Check if already logged in as super admin
+    const superAdminToken = localStorage.getItem('super_admin_token')
+    if (superAdminToken) {
+      this.$router.push('/super-admin/dashboard')
+      return
+    }
+
+    // Check if already logged in as church admin
+    const churchAdminToken = localStorage.getItem('church_admin_token')
+    if (churchAdminToken) {
       this.$router.push('/admin/dashboard')
     }
   },
@@ -103,6 +110,36 @@ export default {
         this.error = null
         this.success = null
 
+        // Try super admin login first
+        try {
+          const superAdminResponse = await axios.post(`${API_URL}/super-admin/login`, {
+            username: this.username,
+            password: this.password
+          })
+
+          if (superAdminResponse.data.token) {
+            // Store super admin token and user info
+            localStorage.setItem('super_admin_token', superAdminResponse.data.token)
+            localStorage.setItem('super_admin_user', JSON.stringify(superAdminResponse.data.admin || {}))
+
+            this.success = 'Super Admin login successful! Redirecting...'
+
+            // Emit login event and redirect to super admin dashboard
+            this.$emit('login')
+            setTimeout(() => {
+              this.$router.push('/super-admin/dashboard').then(() => {
+                // Force page reload to update the layout
+                window.location.reload()
+              })
+            }, 500)
+            return
+          }
+        } catch (superAdminErr) {
+          // If super admin login fails, continue to try church admin login
+          console.log('Not a super admin, trying church admin login...')
+        }
+
+        // Try church admin login
         const response = await axios.post(`${API_URL}/church-admin/login`, {
           username: this.username,
           password: this.password
@@ -127,7 +164,7 @@ export default {
           this.error = 'Login failed. Please try again.'
         }
       } catch (err) {
-        this.error = err.response?.data?.error || 'Invalid email or password'
+        this.error = err.response?.data?.error || 'Invalid username or password'
         console.error('Login error:', err)
       } finally {
         this.loading = false
