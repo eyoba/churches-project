@@ -357,7 +357,7 @@ export default {
 .church-logo {
   width: 100%;
   height: 140px;
-  object-fit: contain;
+  object-fit: cover;
   border-radius: 0.5rem;
   margin-bottom: 0.75rem;
   background: #f8f9fa;
