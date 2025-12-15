@@ -36,7 +36,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 // Database connection pool with proper configuration
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  ssl: { rejectUnauthorized: false }, // Always use SSL for Azure PostgreSQL
   // Connection pool settings to handle idle connections
   max: 20, // Maximum number of clients in the pool
   min: 2, // Minimum number of clients in the pool (keep connections alive)
