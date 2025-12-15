@@ -1303,8 +1303,55 @@ code {
 }
 
 @media (max-width: 768px) {
+  .super-admin-dashboard {
+    padding: 1rem;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
   .grid-2 {
     grid-template-columns: 1fr;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .logo-container {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .logo-preview {
+    width: 150px;
+    height: 150px;
+    margin: 0 auto;
+  }
+
+  .logo-actions {
+    text-align: center;
+  }
+
+  .logo-section,
+  .text-editor-section,
+  .churches-table {
+    padding: 1rem;
+  }
+
+  .churches-table {
+    overflow-x: auto;
+  }
+
+  .churches-table table {
+    min-width: 700px;
+  }
+
+  .stat-card h3 {
+    font-size: 2rem;
   }
 }
 
