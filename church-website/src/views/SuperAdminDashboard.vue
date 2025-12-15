@@ -856,7 +856,7 @@ export default {
     logout() {
       localStorage.removeItem('super_admin_token')
       localStorage.removeItem('super_admin_user')
-      this.$router.push('/super-admin/login')
+      this.$router.push('/')
     }
   }
 }
