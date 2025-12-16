@@ -2,23 +2,27 @@
 -- Run this in your PostgreSQL database
 
 -- Create members table
+-- Fields match the Add Member form exactly
 CREATE TABLE IF NOT EXISTS members (
     id SERIAL PRIMARY KEY,
+    -- Personal Information (from form)
     full_name VARCHAR(200) NOT NULL,
     phone_number VARCHAR(20) NOT NULL,
     email VARCHAR(100),
     personnummer VARCHAR(11) NOT NULL, -- Norwegian SSN (stored encrypted in production)
+    -- Address (from form)
     address VARCHAR(500),
     postal_code VARCHAR(10),
     city VARCHAR(100),
+    -- Member Information (from form)
     member_since DATE,
     baptized BOOLEAN DEFAULT false,
     baptism_date DATE,
-    family_id INTEGER,
     sms_consent BOOLEAN DEFAULT true, -- GDPR consent
+    notes TEXT,
+    -- System fields (not in form, but essential for auditing and soft-delete)
     consent_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     is_active BOOLEAN DEFAULT true, -- Soft delete
-    notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by VARCHAR(100),
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
