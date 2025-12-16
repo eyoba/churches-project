@@ -31,6 +31,7 @@ jobs:
       working-directory: ./church-website
       env:
         VITE_API_URL: https://church-backend-norway.azurewebsites.net/api
+        VITE_MEMBERS_API_URL: https://church-members-backend.azurewebsites.net
       run: |
         npm install
         npm run build

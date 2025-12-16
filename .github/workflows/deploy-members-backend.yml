@@ -1,0 +1,44 @@
+name: Deploy Members Backend to Azure App Service
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'members-backend/**'
+      - '.github/workflows/deploy-members-backend.yml'
+  workflow_dispatch: # Allow manual trigger
+
+env:
+  AZURE_WEBAPP_NAME: church-members-backend    # Replace with your Azure Web App name
+  AZURE_WEBAPP_PACKAGE_PATH: 'members-backend'
+  NODE_VERSION: '18.x'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+
+    - name: Install dependencies
+      working-directory: ./members-backend
+      run: npm install --production
+
+    - name: Deploy to Azure Web App
+      uses: azure/webapps-deploy@v3
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}
+        publish-profile: ${{ secrets.AZURE_MEMBERS_BACKEND_PUBLISH_PROFILE }}
+        package: ./members-backend
+
+    - name: Deployment notification
+      if: success()
+      run: |
+        echo "✅ Members Backend deployed successfully to https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net"
