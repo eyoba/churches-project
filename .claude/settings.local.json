@@ -16,7 +16,18 @@
       "Bash(where:*)",
       "Bash(az staticwebapp secrets list:*)",
       "Bash(curl:*)",
-      "Bash(gh run list:*)"
+      "Bash(gh run list:*)",
+      "Bash(npm run dev:*)",
+      "Bash(taskkill:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(git clean:*)",
+      "Bash(git log:*)",
+      "Bash(npm install:*)",
+      "Bash(psql:*)",
+      "Bash(node run-migration.js:*)",
+      "Bash(node run-reorder-columns.js:*)",
+      "Bash(node run-reorder-columns-fixed.js:*)",
+      "Bash(node run-reorder-final.js:*)"
     ]
   }
 }
