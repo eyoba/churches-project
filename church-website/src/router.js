@@ -73,6 +73,52 @@ const routes = [
         meta: { requiresSuperAuth: true }
       }
     ]
+  },
+  {
+    path: '/members',
+    children: [
+      {
+        path: 'login',
+        name: 'MembersLogin',
+        component: () => import('./views/MembersLogin.vue')
+      },
+      {
+        path: 'dashboard',
+        name: 'MembersDashboard',
+        component: () => import('./views/MembersDashboard.vue'),
+        meta: { requiresMembersAuth: true }
+      },
+      {
+        path: 'list',
+        name: 'MembersList',
+        component: () => import('./views/MembersList.vue'),
+        meta: { requiresMembersAuth: true }
+      },
+      {
+        path: 'add',
+        name: 'AddMember',
+        component: () => import('./views/AddMember.vue'),
+        meta: { requiresMembersAuth: true }
+      },
+      {
+        path: 'edit/:id',
+        name: 'EditMember',
+        component: () => import('./views/EditMember.vue'),
+        meta: { requiresMembersAuth: true }
+      },
+      {
+        path: 'send-sms',
+        name: 'SendSMS',
+        component: () => import('./views/SendSMS.vue'),
+        meta: { requiresMembersAuth: true }
+      },
+      {
+        path: 'sms-logs',
+        name: 'SMSLogs',
+        component: () => import('./views/SMSLogs.vue'),
+        meta: { requiresMembersAuth: true }
+      }
+    ]
   }
 ];
 
@@ -86,6 +132,8 @@ router.beforeEach((to, from, next) => {
     next('/admin/login');
   } else if (to.meta.requiresSuperAuth && !localStorage.getItem('super_admin_token')) {
     next('/super-admin/login');
+  } else if (to.meta.requiresMembersAuth && !localStorage.getItem('members_admin_token')) {
+    next('/members/login');
   } else {
     next();
   }
