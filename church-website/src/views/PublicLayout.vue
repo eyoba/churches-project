@@ -18,7 +18,7 @@
 
     <footer>
       <div class="container text-center">
-        <p>&copy; 2026 Eritrean Orthodox Tewahedo Church in Norway. All rights reserved.</p>
+        <p>&copy; 2026 Eritrean Orthodox Tewahdo Church, Diocese of Norway. All rights reserved.</p>
       </div>
     </footer>
   </div>
