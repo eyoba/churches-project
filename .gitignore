@@ -24,6 +24,9 @@ Thumbs.db
 *.swo
 *~
 
+# Claude Code local settings
+.claude/settings.local.json
+
 # Development
 .cache/
 .temp/
