@@ -50,18 +50,21 @@ Configure these DNS records in Namecheap dashboard for email forwarding to work:
 
 ---
 
-## 3. SMS SERVICE - MESSAGEBIRD (BIRD)
+## 3. SMS SERVICE - BIRD.COM (NEW MESSAGEBIRD API)
 
-**Provider:** MessageBird (rebranded as "Bird")
+**Provider:** Bird.com (MessageBird's new platform)
 **Dashboard:** https://app.bird.com/
 **Registered with:** kontakt@debreiyesus.xyz
 **Registration Date:** 2025 (see dashboard for exact date)
 
 ### API Configuration
 **API Key:** `GazkzBUOF7JkWR3kqmnhmP4vnbUeprZOG1rB`
+**Workspace ID:** `c02279b6-c90a-4a47-9d74-fcdbe64dfbe7`
 **Key Location:** Dashboard → Developers → API access → Create access key
 **Permissions:** Messages (SMS/MMS) enabled
 **Mode:** Live (for real SMS sending)
+
+**IMPORTANT:** Bird.com uses a new workspace-based API architecture. The old MessageBird REST API endpoints (rest.messagebird.com) are being deprecated in favor of the new Bird.com API (api.bird.com).
 
 ### Sender Configuration
 **Sender ID:** `DEBREIYESUS` (alphanumeric)
@@ -79,23 +82,37 @@ Configure these DNS records in Namecheap dashboard for email forwarding to work:
 **Note:** No free trial credit. Minimum top-up: €10 to start sending SMS.
 
 ### API Endpoints
-**Base URL:** `https://rest.messagebird.com`
+**Base URL:** `https://api.bird.com`
 
 **Balance Check:**
 ```bash
-curl -X GET https://rest.messagebird.com/balance \
+curl -X GET https://api.bird.com/workspaces/c02279b6-c90a-4a47-9d74-fcdbe64dfbe7/balance \
   -H "Authorization: AccessKey GazkzBUOF7JkWR3kqmnhmP4vnbUeprZOG1rB"
 ```
 
-**Send SMS:**
+**Send SMS (New Bird.com API format):**
 ```bash
-curl -X POST https://rest.messagebird.com/messages \
+curl -X POST https://api.bird.com/workspaces/c02279b6-c90a-4a47-9d74-fcdbe64dfbe7/channels/sms/messages \
   -H "Authorization: AccessKey GazkzBUOF7JkWR3kqmnhmP4vnbUeprZOG1rB" \
   -H "Content-Type: application/json" \
   -d '{
-    "originator": "DEBREIYESUS",
-    "recipients": ["4748502673"],
-    "body": "Test fra Debre Iyesus"
+    "receiver": {
+      "contacts": [
+        {
+          "identifierKey": "phonenumber",
+          "identifierValue": "4748502673"
+        }
+      ]
+    },
+    "body": {
+      "type": "text",
+      "text": {
+        "text": "Test fra Debre Iyesus"
+      }
+    },
+    "reporting": {
+      "reportUrl": null
+    }
   }'
 ```
 
@@ -112,40 +129,59 @@ curl -X POST https://rest.messagebird.com/messages \
 
 **File:** `backend/.env`
 ```env
-MESSAGEBIRD_API_KEY=GazkzBUOF7JkWR3kqmnhmP4vnbUeprZOG1rB
-MESSAGEBIRD_SENDER=DEBREIYESUS
+# Bird.com SMS Configuration (New MessageBird API)
+BIRD_API_KEY=GazkzBUOF7JkWR3kqmnhmP4vnbUeprZOG1rB
+BIRD_WORKSPACE_ID=c02279b6-c90a-4a47-9d74-fcdbe64dfbe7
+BIRD_SENDER=DEBREIYESUS
 ```
 
 **File:** `members-backend/.env`
 ```env
-MESSAGEBIRD_API_KEY=GazkzBUOF7JkWR3kqmnhmP4vnbUeprZOG1rB
-MESSAGEBIRD_SENDER=DEBREIYESUS
+# Bird.com SMS Configuration (New MessageBird API)
+BIRD_API_KEY=GazkzBUOF7JkWR3kqmnhmP4vnbUeprZOG1rB
+BIRD_WORKSPACE_ID=c02279b6-c90a-4a47-9d74-fcdbe64dfbe7
+BIRD_SENDER=DEBREIYESUS
 ```
 
 ### Code Implementation
-Both backends use the same MessageBird REST API implementation:
+Both backends use the new Bird.com workspace-based API:
 
 **API Request Pattern:**
 ```javascript
 const axios = require('axios');
 
-const MESSAGEBIRD_CONFIG = {
-  api_url: 'https://rest.messagebird.com/messages',
-  api_key: process.env.MESSAGEBIRD_API_KEY,
-  sender: process.env.MESSAGEBIRD_SENDER || 'DEBREIYESUS'
+const BIRD_CONFIG = {
+  api_url: 'https://api.bird.com',
+  api_key: process.env.BIRD_API_KEY,
+  workspace_id: process.env.BIRD_WORKSPACE_ID,
+  sender: process.env.BIRD_SENDER || 'DEBREIYESUS'
 };
 
-// Send SMS
+// Send SMS via Bird.com API
+const contacts = phoneNumbers.map(phone => ({
+  identifierKey: 'phonenumber',
+  identifierValue: phone.replace(/\+/g, '').replace(/\s/g, '')
+}));
+
 const response = await axios.post(
-  MESSAGEBIRD_CONFIG.api_url,
+  `${BIRD_CONFIG.api_url}/workspaces/${BIRD_CONFIG.workspace_id}/channels/sms/messages`,
   {
-    originator: MESSAGEBIRD_CONFIG.sender,
-    recipients: phoneNumbers, // Array of phone numbers
-    body: message
+    receiver: {
+      contacts: contacts
+    },
+    body: {
+      type: 'text',
+      text: {
+        text: message
+      }
+    },
+    reporting: {
+      reportUrl: null
+    }
   },
   {
     headers: {
-      'Authorization': `AccessKey ${MESSAGEBIRD_CONFIG.api_key}`,
+      'Authorization': `AccessKey ${BIRD_CONFIG.api_key}`,
       'Content-Type': 'application/json'
     }
   }
@@ -169,14 +205,16 @@ When deploying to Azure App Service, add these environment variables in Azure Po
 
 **church-backend (port 3001):**
 ```
-MESSAGEBIRD_API_KEY=GazkzBUOF7JkWR3kqmnhmP4vnbUeprZOG1rB
-MESSAGEBIRD_SENDER=DEBREIYESUS
+BIRD_API_KEY=GazkzBUOF7JkWR3kqmnhmP4vnbUeprZOG1rB
+BIRD_WORKSPACE_ID=c02279b6-c90a-4a47-9d74-fcdbe64dfbe7
+BIRD_SENDER=DEBREIYESUS
 ```
 
 **church-members-backend (port 3002):**
 ```
-MESSAGEBIRD_API_KEY=GazkzBUOF7JkWR3kqmnhmP4vnbUeprZOG1rB
-MESSAGEBIRD_SENDER=DEBREIYESUS
+BIRD_API_KEY=GazkzBUOF7JkWR3kqmnhmP4vnbUeprZOG1rB
+BIRD_WORKSPACE_ID=c02279b6-c90a-4a47-9d74-fcdbe64dfbe7
+BIRD_SENDER=DEBREIYESUS
 ```
 
 ### Azure Configuration Steps
@@ -184,7 +222,7 @@ MESSAGEBIRD_SENDER=DEBREIYESUS
 2. Navigate to App Service (backend or members-backend)
 3. Settings → Configuration → Application settings
 4. Click "+ New application setting"
-5. Add both MESSAGEBIRD_API_KEY and MESSAGEBIRD_SENDER
+5. Add all three variables: BIRD_API_KEY, BIRD_WORKSPACE_ID, and BIRD_SENDER
 6. Click "Save" and restart the app service
 
 ---
@@ -192,28 +230,43 @@ MESSAGEBIRD_SENDER=DEBREIYESUS
 ## 6. TESTING CHECKLIST
 
 ### Before Going Live
-- [ ] Verify MessageBird account has credit (minimum €10)
+- [ ] Verify Bird.com account has credit (minimum €10)
+- [ ] Verify API key has proper permissions in Bird.com dashboard
 - [ ] Test balance endpoint with curl command
 - [ ] Test sending single SMS to your own phone number
 - [ ] Verify SMS displays sender as "DEBREIYESUS"
 - [ ] Test batch sending (multiple recipients)
 - [ ] Verify cost calculation matches actual charges
-- [ ] Check SMS delivery reports in MessageBird dashboard
+- [ ] Check SMS delivery reports in Bird.com dashboard
 
 ### Test Commands
 ```bash
-# Check account balance
-curl -X GET https://rest.messagebird.com/balance \
+# Check account balance (New Bird.com API)
+curl -X GET https://api.bird.com/workspaces/c02279b6-c90a-4a47-9d74-fcdbe64dfbe7/balance \
   -H "Authorization: AccessKey GazkzBUOF7JkWR3kqmnhmP4vnbUeprZOG1rB"
 
-# Send test SMS to yourself
-curl -X POST https://rest.messagebird.com/messages \
+# Send test SMS to yourself (New Bird.com API)
+curl -X POST https://api.bird.com/workspaces/c02279b6-c90a-4a47-9d74-fcdbe64dfbe7/channels/sms/messages \
   -H "Authorization: AccessKey GazkzBUOF7JkWR3kqmnhmP4vnbUeprZOG1rB" \
   -H "Content-Type: application/json" \
   -d '{
-    "originator": "DEBREIYESUS",
-    "recipients": ["4748502673"],
-    "body": "Test fra Debre Iyesus kirkens SMS-system"
+    "receiver": {
+      "contacts": [
+        {
+          "identifierKey": "phonenumber",
+          "identifierValue": "4748502673"
+        }
+      ]
+    },
+    "body": {
+      "type": "text",
+      "text": {
+        "text": "Test fra Debre Iyesus kirkens SMS-system"
+      }
+    },
+    "reporting": {
+      "reportUrl": null
+    }
   }'
 ```
 
@@ -223,20 +276,28 @@ curl -X POST https://rest.messagebird.com/messages \
 
 ### Common Issues
 
+**Error: "Forbidden" or "The action is forbidden"**
+- Verify API key is correct in .env files
+- Check Bird.com dashboard that API key hasn't been deleted or expired
+- Verify API key has "Messages (SMS/MMS)" permission enabled
+- Ensure account has been verified and has credit (minimum €10)
+- Check if API key is from correct location: Dashboard → Developers → API access
+- Restart both backend servers after changing .env
+
 **Error: "Request not allowed (incorrect access_key)"**
 - Verify API key is correct in .env files
 - Restart both backend servers after changing .env
-- Check MessageBird dashboard that API key hasn't been deleted
+- Check Bird.com dashboard that API key hasn't been deleted
 - Verify API key has "Messages" permission enabled
 
 **SMS Not Received**
-- Check MessageBird dashboard for delivery status
+- Check Bird.com dashboard for delivery status
 - Verify phone number format (no + or spaces)
 - Check recipient has SMS consent enabled
 - Verify account has sufficient credit
 
 **Wrong Sender Displayed**
-- Confirm MESSAGEBIRD_SENDER=DEBREIYESUS in .env
+- Confirm BIRD_SENDER=DEBREIYESUS in .env
 - Some countries may not support alphanumeric sender IDs
 - Test with Norwegian phone numbers first
 
@@ -277,10 +338,11 @@ curl -X POST https://rest.messagebird.com/messages \
    - Ensure Namecheap domain renewal is enabled
    - Keep domain renewed to maintain email forwarding
 
-3. **MessageBird Account:**
+3. **Bird.com Account:**
    - Monitor credit balance regularly
    - Set up low balance alerts in dashboard
    - Review SMS delivery reports monthly
+   - Keep workspace ID secure and confidential
 
 4. **Compliance:**
    - Only send SMS to members who have given consent
@@ -288,9 +350,15 @@ curl -X POST https://rest.messagebird.com/messages \
    - Members can opt-out at any time
 
 5. **Rate Limits:**
-   - MessageBird has rate limits (check dashboard)
+   - Bird.com has rate limits (check dashboard)
    - Backend implements batch sending for efficiency
    - Test with small batches first before large campaigns
+
+6. **API Migration:**
+   - System now uses Bird.com's new workspace-based API
+   - Old MessageBird REST API (rest.messagebird.com) is being deprecated
+   - All endpoints now include workspace ID in URL path
+   - Request format has changed to use contacts array structure
 
 ---
 
@@ -300,11 +368,11 @@ curl -X POST https://rest.messagebird.com/messages \
 |---------|-------------|
 | Namecheap | https://www.namecheap.com/support/ |
 | ImprovMX | https://improvmx.com/support/ |
-| MessageBird | https://support.messagebird.com/ |
+| Bird.com | https://support.bird.com/ |
 
 ---
 
 **Document Created:** 2025-12-17
-**Last Updated:** 2025-12-17
+**Last Updated:** 2025-12-17 (Updated for Bird.com API migration)
 **Maintained By:** Debre Iyesus Development Team
-**Version:** 1.0
+**Version:** 2.0 (Migrated to Bird.com workspace-based API)

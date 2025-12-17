@@ -41,22 +41,28 @@ pool.query('SELECT NOW()', (err, res) => {
   }
 });
 
-// MessageBird Configuration
-const MESSAGEBIRD_CONFIG = {
-  api_url: 'https://rest.messagebird.com/messages',
-  api_key: process.env.MESSAGEBIRD_API_KEY,
-  sender: process.env.MESSAGEBIRD_SENDER || 'DEBREIYESUS'
+// ============================================
+// BIRD.COM (NEW MESSAGEBIRD) SMS CONFIGURATION
+// ============================================
+const BIRD_CONFIG = {
+  api_url: 'https://api.bird.com',
+  api_key: process.env.BIRD_API_KEY,
+  workspace_id: process.env.BIRD_WORKSPACE_ID,
+  channel_id: process.env.BIRD_CHANNEL_ID,
+  sender: process.env.BIRD_SENDER || 'DEBREIYESUS'
 };
 
-// Check MessageBird configuration
-let messageBirdConfigured = false;
-if (process.env.MESSAGEBIRD_API_KEY) {
-  messageBirdConfigured = true;
-  console.log('✅ MessageBird configured');
-  console.log(`📤 SMS Sender ID: ${MESSAGEBIRD_CONFIG.sender}`);
+// Check Bird configuration
+let birdConfigured = false;
+if (process.env.BIRD_API_KEY && process.env.BIRD_WORKSPACE_ID && process.env.BIRD_CHANNEL_ID) {
+  birdConfigured = true;
+  console.log('✅ Bird.com SMS configured');
+  console.log(`📤 Workspace ID: ${BIRD_CONFIG.workspace_id}`);
+  console.log(`📤 Channel ID: ${BIRD_CONFIG.channel_id}`);
+  console.log(`📤 SMS Sender ID: ${BIRD_CONFIG.sender}`);
 } else {
-  console.log('⚠️  MessageBird not configured - SMS features will be disabled');
-  console.log('   To enable SMS: Configure MESSAGEBIRD_API_KEY and MESSAGEBIRD_SENDER in .env');
+  console.log('⚠️  Bird.com not configured - SMS features will be disabled');
+  console.log('   To enable SMS: Configure BIRD_API_KEY, BIRD_WORKSPACE_ID, BIRD_CHANNEL_ID, and BIRD_SENDER in .env');
 }
 
 // JWT Middleware
@@ -358,7 +364,7 @@ app.post('/api/sms/send', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Message is required' });
     }
 
-    if (!messageBirdConfigured) {
+    if (!birdConfigured) {
       return res.status(503).json({ error: 'SMS service not configured' });
     }
 
@@ -380,26 +386,43 @@ app.post('/api/sms/send', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'No eligible recipients found' });
     }
 
-    // Format phone numbers (remove + and spaces)
+    // Format phone numbers for Bird API (remove + and spaces)
     const phoneNumbers = recipients.map(r =>
       r.phone_number.replace(/\+/g, '').replace(/\s/g, '')
     );
 
-    console.log(`\n📤 Sender SMS til ${recipients.length} medlemmer...`);
-    console.log(`📝 Fra: ${MESSAGEBIRD_CONFIG.sender}\n`);
+    console.log(`\n📤 Sender SMS til ${recipients.length} medlemmer via Bird.com...`);
+    console.log(`📝 Workspace: ${BIRD_CONFIG.workspace_id}`);
+    console.log(`📝 Avsender: ${BIRD_CONFIG.sender}\n`);
 
-    // Send SMS via MessageBird API
+    // Send SMS via Bird.com API
     try {
-      const response = await axios.post(
-        MESSAGEBIRD_CONFIG.api_url,
-        {
-          originator: MESSAGEBIRD_CONFIG.sender,
-          recipients: phoneNumbers,
-          body: message
+      // Format contacts for Bird API
+      const contacts = phoneNumbers.map(phone => ({
+        identifierKey: 'phonenumber',
+        identifierValue: phone
+      }));
+
+      const requestBody = {
+        receiver: {
+          contacts: contacts
         },
+        body: {
+          type: 'text',
+          text: {
+            text: message
+          }
+        }
+      };
+
+      console.log('📤 Bird.com request:', JSON.stringify(requestBody, null, 2));
+
+      const response = await axios.post(
+        `${BIRD_CONFIG.api_url}/workspaces/${BIRD_CONFIG.workspace_id}/channels/${BIRD_CONFIG.channel_id}/messages`,
+        requestBody,
         {
           headers: {
-            'Authorization': `AccessKey ${MESSAGEBIRD_CONFIG.api_key}`,
+            'Authorization': `AccessKey ${BIRD_CONFIG.api_key}`,
             'Content-Type': 'application/json'
           }
         }
@@ -409,7 +432,7 @@ app.post('/api/sms/send', authenticateToken, async (req, res) => {
       const cost_eur = recipients.length * 0.016;
       const cost_nok = cost_eur * 11.5;
 
-      console.log(`✅ SMS sendt!`);
+      console.log(`✅ SMS sendt til ${recipients.length} medlemmer!`);
       console.log(`💰 Kostnad: €${cost_eur.toFixed(2)} (${cost_nok.toFixed(2)} NOK)`);
       console.log(`📊 Message ID: ${response.data.id}\n`);
 
@@ -431,16 +454,19 @@ app.post('/api/sms/send', authenticateToken, async (req, res) => {
       }
 
       res.json({
-        message: `SMS sendt fra "${MESSAGEBIRD_CONFIG.sender}" til ${recipients.length} medlemmer!`,
+        message: `SMS sendt fra "${BIRD_CONFIG.sender}" til ${recipients.length} medlemmer!`,
         sent: recipients.length,
         failed: 0,
         cost: `${cost_nok.toFixed(2)} NOK`,
-        sender: MESSAGEBIRD_CONFIG.sender,
+        sender: BIRD_CONFIG.sender,
         message_id: response.data.id
       });
 
-    } catch (messageBirdError) {
-      console.error('❌ MessageBird Error:', messageBirdError.response?.data || messageBirdError.message);
+    } catch (birdError) {
+      console.error('❌ Bird.com API Error:');
+      console.error('Status:', birdError.response?.status);
+      console.error('Data:', birdError.response?.data);
+      console.error('Message:', birdError.message);
 
       // Log failed attempt
       const logResult = await pool.query(`
@@ -459,7 +485,17 @@ app.post('/api/sms/send', authenticateToken, async (req, res) => {
         `, [smsLogId, recipient.id, recipient.phone_number, 'failed']);
       }
 
-      throw new Error('SMS sending failed: ' + (messageBirdError.response?.data?.errors?.[0]?.description || messageBirdError.message));
+      // Better error messages
+      let errorMessage = 'SMS sending failed';
+      if (birdError.response?.data?.message) {
+        errorMessage = `Bird API: ${birdError.response.data.message}`;
+      } else if (birdError.response?.data?.error) {
+        errorMessage = `Bird API: ${birdError.response.data.error}`;
+      } else if (birdError.message) {
+        errorMessage = `SMS sending failed: ${birdError.message}`;
+      }
+
+      throw new Error(errorMessage);
     }
 
   } catch (err) {
