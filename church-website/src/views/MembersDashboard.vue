@@ -1,7 +1,7 @@
 <template>
   <div class="members-dashboard">
     <div class="dashboard-header">
-      <h1>Medlemssystem Dashboard</h1>
+      <h1>Debre Iyesus Medlemssystem Dashboard</h1>
       <button @click="handleLogout" class="btn btn-secondary">Logg ut</button>
     </div>
 

@@ -2,7 +2,7 @@
   <div class="members-login">
     <div class="login-container">
       <div class="login-card">
-        <h2>Medlemssystem Innlogging</h2>
+        <h2>Debre Iyesus Medlemssystem Innlogging</h2>
         <p class="subtitle">Logg inn for å administrere kirkens medlemmer</p>
 
         <form @submit.prevent="handleLogin">
