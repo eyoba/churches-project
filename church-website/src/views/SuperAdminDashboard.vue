@@ -297,14 +297,16 @@
 
     <div class="churches-table">
       <h2>All Churches</h2>
-      <table>
+      <div v-if="loadingChurches" class="loading-message">
+        Loading churches...
+      </div>
+      <table v-else>
         <thead>
           <tr>
             <th>Name</th>
             <th>Slug</th>
             <th>Pastor</th>
             <th>Admins</th>
-            <th>Members</th>
             <th>Status</th>
             <th>Actions</th>
           </tr>
@@ -315,7 +317,6 @@
             <td><code>{{ church.slug }}</code></td>
             <td>{{ church.pastor_name || 'N/A' }}</td>
             <td>{{ church.admin_count }}</td>
-            <td>{{ church.member_count }}</td>
             <td>
               <span :class="['status-badge', church.is_active ? 'active' : 'inactive']">
                 {{ church.is_active ? 'Active' : 'Inactive' }}
@@ -517,6 +518,7 @@ export default {
       logoUrl: '',
       selectedFile: null,
       uploading: false,
+      loadingChurches: true,
       siteTitle: '',
       siteSubtitle: '',
       navTitle: '',
@@ -739,6 +741,7 @@ export default {
     },
     async fetchChurches() {
       try {
+        this.loadingChurches = true
         const token = localStorage.getItem('super_admin_token')
         const response = await axios.get(`${API_URL}/super-admin/churches`, {
           headers: { Authorization: `Bearer ${token}` }
@@ -749,6 +752,8 @@ export default {
           this.$router.push('/super-admin/login')
         }
         console.error('Error fetching churches:', error)
+      } finally {
+        this.loadingChurches = false
       }
     },
     editChurch(church) {
