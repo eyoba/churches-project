@@ -3,7 +3,7 @@ const cors = require('cors');
 const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const twilio = require('twilio');
+const axios = require('axios');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const path = require('path');
@@ -69,13 +69,22 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Twilio (optional - only initialize if credentials are provided)
-let twilioClient = null;
-if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_ACCOUNT_SID.startsWith('AC')) {
-  twilioClient = twilio(
-    process.env.TWILIO_ACCOUNT_SID,
-    process.env.TWILIO_AUTH_TOKEN
-  );
+// MessageBird Configuration
+const MESSAGEBIRD_CONFIG = {
+  api_url: 'https://rest.messagebird.com/messages',
+  api_key: process.env.MESSAGEBIRD_API_KEY,
+  sender: process.env.MESSAGEBIRD_SENDER || 'DEBREIYESUS'
+};
+
+// Check MessageBird configuration
+let messageBirdConfigured = false;
+if (process.env.MESSAGEBIRD_API_KEY) {
+  messageBirdConfigured = true;
+  console.log('✅ MessageBird configured');
+  console.log(`📤 SMS Sender ID: ${MESSAGEBIRD_CONFIG.sender}`);
+} else {
+  console.log('⚠️  MessageBird not configured - SMS features will be disabled');
+  console.log('   To enable SMS: Configure MESSAGEBIRD_API_KEY and MESSAGEBIRD_SENDER in .env');
 }
 
 // File upload configuration
@@ -990,59 +999,94 @@ app.delete('/api/sms/members/:id', authenticateChurchAdmin, async (req, res) => 
 app.post('/api/sms/send', authenticateChurchAdmin, async (req, res) => {
   try {
     const { member_ids, message } = req.body;
-    
+
+    if (!member_ids || member_ids.length === 0) {
+      return res.status(400).json({ error: 'No recipients selected' });
+    }
+
+    if (!message || message.trim().length === 0) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+
+    if (!messageBirdConfigured) {
+      return res.status(503).json({ error: 'SMS service not configured' });
+    }
+
     // Get members (verify they belong to this church)
     const result = await pool.query(
-      'SELECT phone, name FROM members WHERE id = ANY($1) AND church_id = $2 AND is_active = true',
+      'SELECT id, phone, name FROM members WHERE id = ANY($1) AND church_id = $2 AND is_active = true',
       [member_ids, req.admin.church_id]
     );
-    
+
     if (result.rows.length === 0) {
       return res.status(400).json({ error: 'No valid members selected' });
     }
-    
+
     const recipients = result.rows;
-    const phoneNumbers = recipients.map(r => r.phone);
-    const successfulSends = [];
-    const failedSends = [];
 
-    // Check if Twilio is configured
-    if (!twilioClient) {
-      return res.status(400).json({
-        error: 'SMS service not configured. Please add Twilio credentials to .env file.'
+    // Format phone numbers (remove + and spaces)
+    const phoneNumbers = recipients.map(r =>
+      r.phone.replace(/\+/g, '').replace(/\s/g, '')
+    );
+
+    console.log(`\n📤 Sending SMS to ${recipients.length} members...`);
+    console.log(`📝 From: ${MESSAGEBIRD_CONFIG.sender}\n`);
+
+    // Send SMS via MessageBird API
+    try {
+      const response = await axios.post(
+        MESSAGEBIRD_CONFIG.api_url,
+        {
+          originator: MESSAGEBIRD_CONFIG.sender,
+          recipients: phoneNumbers,
+          body: message
+        },
+        {
+          headers: {
+            'Authorization': `AccessKey ${MESSAGEBIRD_CONFIG.api_key}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      // Calculate cost (€0.016 per SMS = ~0.18 NOK per SMS)
+      const cost_eur = recipients.length * 0.016;
+      const cost_nok = cost_eur * 11.5;
+
+      console.log(`✅ SMS sent!`);
+      console.log(`💰 Cost: €${cost_eur.toFixed(2)} (${cost_nok.toFixed(2)} NOK)`);
+      console.log(`📊 Message ID: ${response.data.id}\n`);
+
+      // Log SMS
+      await pool.query(`
+        INSERT INTO sms_logs (church_id, sent_by, message, recipient_count, recipients, status, cost)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `, [req.admin.church_id, req.admin.admin_id, message, recipients.length, phoneNumbers, 'sent', cost_nok]);
+
+      res.json({
+        success: true,
+        message: `SMS sent from "${MESSAGEBIRD_CONFIG.sender}" to ${recipients.length} members!`,
+        sent: recipients.length,
+        failed: 0,
+        cost: `${cost_nok.toFixed(2)} NOK`,
+        sender: MESSAGEBIRD_CONFIG.sender,
+        message_id: response.data.id
       });
-    }
 
-    // Send SMS
-    for (const recipient of recipients) {
-      try {
-        const smsResult = await twilioClient.messages.create({
-          body: message,
-          from: process.env.TWILIO_PHONE_NUMBER,
-          to: recipient.phone
-        });
-        successfulSends.push({ name: recipient.name, phone: recipient.phone, status: smsResult.status });
-      } catch (smsError) {
-        failedSends.push({ name: recipient.name, phone: recipient.phone, error: smsError.message });
-      }
+    } catch (messageBirdError) {
+      console.error('❌ MessageBird Error:', messageBirdError.response?.data || messageBirdError.message);
+
+      // Log failed attempt
+      await pool.query(`
+        INSERT INTO sms_logs (church_id, sent_by, message, recipient_count, recipients, status, cost)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `, [req.admin.church_id, req.admin.admin_id, message, recipients.length, phoneNumbers, 'failed', 0]);
+
+      throw new Error('SMS sending failed: ' + (messageBirdError.response?.data?.errors?.[0]?.description || messageBirdError.message));
     }
-    
-    // Log SMS
-    const cost = successfulSends.length * 0.0075;
-    await pool.query(`
-      INSERT INTO sms_logs (church_id, sent_by, message, recipient_count, recipients, status, cost)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-    `, [req.admin.church_id, req.admin.admin_id, message, successfulSends.length, phoneNumbers, 'sent', cost]);
-    
-    res.json({
-      success: true,
-      sent: successfulSends.length,
-      failed: failedSends.length,
-      cost: `$${cost.toFixed(4)}`,
-      details: { successful: successfulSends, failed: failedSends }
-    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('SMS send error:', error);
+    res.status(500).json({ error: error.message || 'Failed to send SMS' });
   }
 });
 
