@@ -125,6 +125,14 @@ export default {
         if (this.activeFilter) filters.active = this.activeFilter === 'true'
 
         this.members = await membersService.getMembers(filters)
+
+        // Sort alphabetically by name (ascending)
+        this.members.sort((a, b) => {
+          const nameA = (a.full_name || '').toLowerCase()
+          const nameB = (b.full_name || '').toLowerCase()
+          return nameA.localeCompare(nameB, 'nb-NO')
+        })
+
         this.filteredMembers = this.members
       } catch (error) {
         console.error('Error loading members:', error)
