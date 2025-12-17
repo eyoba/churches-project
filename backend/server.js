@@ -39,12 +39,14 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }, // Always use SSL for Azure PostgreSQL
   // Connection pool settings to handle idle connections
   max: 20, // Maximum number of clients in the pool
-  min: 2, // Minimum number of clients in the pool (keep connections alive)
-  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
-  connectionTimeoutMillis: 10000, // Return an error after 10 seconds if connection cannot be established
+  min: 4, // Minimum number of clients in the pool (increased to keep more connections alive)
+  idleTimeoutMillis: 60000, // Close idle clients after 60 seconds (increased from 30s)
+  connectionTimeoutMillis: 15000, // Return an error after 15 seconds (increased from 10s for Azure)
   // Keep connections alive to prevent Azure from closing them
   keepAlive: true,
-  keepAliveInitialDelayMillis: 10000 // Start keepalive after 10 seconds
+  keepAliveInitialDelayMillis: 5000, // Start keepalive earlier (reduced from 10s to 5s)
+  // Add statement timeout to prevent hanging queries
+  statement_timeout: 30000 // Kill queries that take longer than 30 seconds
 });
 
 // Handle pool errors to prevent app crashes
@@ -132,12 +134,18 @@ const authenticateSuperAdmin = (req, res, next) => {
 
 // Get all active churches
 app.get('/api/churches', async (req, res) => {
+  const startTime = Date.now();
   try {
+    console.log('📍 GET /api/churches - Fetching churches...');
     const result = await pool.query(
       'SELECT id, name, slug, address, phone, email, pastor_name, description, logo_url, field_labels, display_order, facebook FROM churches WHERE is_active = true ORDER BY display_order ASC, name ASC'
     );
+    const duration = Date.now() - startTime;
+    console.log(`✅ Churches fetched: ${result.rows.length} churches in ${duration}ms`);
     res.json(result.rows);
   } catch (error) {
+    const duration = Date.now() - startTime;
+    console.error(`❌ Error fetching churches after ${duration}ms:`, error.message);
     res.status(500).json({ error: error.message });
   }
 });

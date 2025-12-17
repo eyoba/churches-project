@@ -386,14 +386,21 @@ app.post('/api/sms/send', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'No eligible recipients found' });
     }
 
-    // Format phone numbers for Bird API (remove + and spaces)
-    const phoneNumbers = recipients.map(r =>
-      r.phone_number.replace(/\+/g, '').replace(/\s/g, '')
-    );
+    // Format phone numbers for Bird API (ensure + prefix and no spaces)
+    const phoneNumbers = recipients.map(r => {
+      let phone = r.phone_number.replace(/\s/g, '');
+      // Ensure phone number starts with +
+      if (!phone.startsWith('+')) {
+        phone = '+' + phone;
+      }
+      return phone;
+    });
 
     console.log(`\n📤 Sender SMS til ${recipients.length} medlemmer via Bird.com...`);
     console.log(`📝 Workspace: ${BIRD_CONFIG.workspace_id}`);
-    console.log(`📝 Avsender: ${BIRD_CONFIG.sender}\n`);
+    console.log(`📝 Avsender: ${BIRD_CONFIG.sender}`);
+    console.log(`📝 Phone numbers:`, phoneNumbers);
+    console.log('');
 
     // Send SMS via Bird.com API
     try {
@@ -427,6 +434,9 @@ app.post('/api/sms/send', authenticateToken, async (req, res) => {
           }
         }
       );
+
+      // Log full response for debugging
+      console.log('📨 Bird.com API Response:', JSON.stringify(response.data, null, 2));
 
       // Calculate cost (€0.016 per SMS = ~0.18 NOK per SMS)
       const cost_eur = recipients.length * 0.016;
@@ -516,7 +526,7 @@ app.get('/api/sms/logs', authenticateToken, async (req, res) => {
         json_agg(
           json_build_object(
             'id', sr.id,
-            'full_name', COALESCE(m.full_name, m.name),
+            'full_name', m.full_name,
             'phone_number', sr.phone_number,
             'status', sr.status,
             'twilio_sid', sr.twilio_sid
@@ -560,8 +570,8 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
     service: 'Members Management API',
-    sms_provider: 'MessageBird',
-    sms_enabled: messageBirdConfigured
+    sms_provider: 'Bird.com',
+    sms_enabled: birdConfigured
   });
 });
 
