@@ -550,7 +550,7 @@ app.get('/api/church-admin/dashboard', authenticateChurchAdmin, async (req, res)
       pool.query('SELECT * FROM churches WHERE id = $1', [church_id]),
       pool.query('SELECT COUNT(*) FROM church_news WHERE church_id = $1', [church_id]),
       pool.query('SELECT COUNT(*) FROM church_events WHERE church_id = $1 AND event_date >= NOW()', [church_id]),
-      pool.query('SELECT COUNT(*) FROM members WHERE church_id = $1 AND is_active = true', [church_id]),
+      pool.query('SELECT COUNT(*) FROM members WHERE is_active = true'),
       pool.query('SELECT COUNT(*) FROM church_photos WHERE church_id = $1', [church_id])
     ]);
     
