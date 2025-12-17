@@ -3,7 +3,7 @@ const { Pool } = require('pg');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const twilio = require('twilio');
+const axios = require('axios');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
@@ -41,24 +41,22 @@ pool.query('SELECT NOW()', (err, res) => {
   }
 });
 
-// Twilio Client (optional - only if configured)
-let twilioClient = null;
-if (process.env.TWILIO_ACCOUNT_SID &&
-    process.env.TWILIO_AUTH_TOKEN &&
-    process.env.TWILIO_ACCOUNT_SID.startsWith('AC')) {
-  try {
-    twilioClient = twilio(
-      process.env.TWILIO_ACCOUNT_SID,
-      process.env.TWILIO_AUTH_TOKEN
-    );
-    console.log('✅ Twilio client initialized');
-  } catch (err) {
-    console.log('⚠️  Twilio initialization failed:', err.message);
-    console.log('⚠️  SMS features will be disabled');
-  }
+// MessageBird Configuration
+const MESSAGEBIRD_CONFIG = {
+  api_url: 'https://rest.messagebird.com/messages',
+  api_key: process.env.MESSAGEBIRD_API_KEY,
+  sender: process.env.MESSAGEBIRD_SENDER || 'DEBREIYESUS'
+};
+
+// Check MessageBird configuration
+let messageBirdConfigured = false;
+if (process.env.MESSAGEBIRD_API_KEY) {
+  messageBirdConfigured = true;
+  console.log('✅ MessageBird configured');
+  console.log(`📤 SMS Sender ID: ${MESSAGEBIRD_CONFIG.sender}`);
 } else {
-  console.log('⚠️  Twilio not configured - SMS features will be disabled');
-  console.log('   To enable SMS: Configure TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER in .env');
+  console.log('⚠️  MessageBird not configured - SMS features will be disabled');
+  console.log('   To enable SMS: Configure MESSAGEBIRD_API_KEY and MESSAGEBIRD_SENDER in .env');
 }
 
 // JWT Middleware
@@ -360,7 +358,7 @@ app.post('/api/sms/send', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Message is required' });
     }
 
-    if (!twilioClient) {
+    if (!messageBirdConfigured) {
       return res.status(503).json({ error: 'SMS service not configured' });
     }
 
@@ -382,89 +380,91 @@ app.post('/api/sms/send', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'No eligible recipients found' });
     }
 
-    // Create SMS log entry
-    const logResult = await pool.query(`
-      INSERT INTO sms_logs (message, recipient_count, sent_by, cost_estimate)
-      VALUES ($1, $2, $3, $4)
-      RETURNING id
-    `, [message, recipients.length, req.user.username, recipients.length * 0.16]);
+    // Format phone numbers (remove + and spaces)
+    const phoneNumbers = recipients.map(r =>
+      r.phone_number.replace(/\+/g, '').replace(/\s/g, '')
+    );
 
-    const smsLogId = logResult.rows[0].id;
+    console.log(`\n📤 Sender SMS til ${recipients.length} medlemmer...`);
+    console.log(`📝 Fra: ${MESSAGEBIRD_CONFIG.sender}\n`);
 
-    // Send SMS to each recipient with alphanumeric sender ID
-    const sendPromises = recipients.map(async (recipient) => {
-      try {
-        // Try sending with alphanumeric sender ID first (if configured)
-        let twilioMessage;
-        const senderID = process.env.SMS_SENDER_ID;
-
-        try {
-          const fromNumber = senderID || process.env.TWILIO_PHONE_NUMBER;
-
-          twilioMessage = await twilioClient.messages.create({
-            body: message,
-            from: fromNumber,
-            to: recipient.phone_number
-          });
-
-          if (senderID) {
-            console.log(`✅ Sendt med alphanumeric sender ID "${senderID}" til: ${recipient.phone_number}`);
-          } else {
-            console.log(`✅ Sendt med telefonnummer ${fromNumber} til: ${recipient.phone_number}`);
-          }
-
-        } catch (alphaError) {
-          // If alphanumeric fails (trial account, not supported, etc), fallback to phone number
-          if (alphaError.code === 21612 || alphaError.code === 21606 ||
-              alphaError.message?.includes('Alphanumeric Sender ID') ||
-              alphaError.message?.includes('trial account')) {
-            console.log(`⚠️ Alphanumeric ikke støttet for ${recipient.phone_number}, bruker fallback-nummer`);
-            console.log(`   Grunn: ${alphaError.message}`);
-
-            twilioMessage = await twilioClient.messages.create({
-              body: message,
-              from: process.env.TWILIO_PHONE_NUMBER,  // Fallback til US-nummer
-              to: recipient.phone_number
-            });
-
-            console.log(`✅ Sendt med fallback-nummer til: ${recipient.phone_number}`);
-          } else {
-            throw alphaError;  // Other errors should be caught by outer catch
+    // Send SMS via MessageBird API
+    try {
+      const response = await axios.post(
+        MESSAGEBIRD_CONFIG.api_url,
+        {
+          originator: MESSAGEBIRD_CONFIG.sender,
+          recipients: phoneNumbers,
+          body: message
+        },
+        {
+          headers: {
+            'Authorization': `AccessKey ${MESSAGEBIRD_CONFIG.api_key}`,
+            'Content-Type': 'application/json'
           }
         }
+      );
 
-        // Log recipient
+      // Calculate cost (€0.016 per SMS = ~0.18 NOK per SMS)
+      const cost_eur = recipients.length * 0.016;
+      const cost_nok = cost_eur * 11.5;
+
+      console.log(`✅ SMS sendt!`);
+      console.log(`💰 Kostnad: €${cost_eur.toFixed(2)} (${cost_nok.toFixed(2)} NOK)`);
+      console.log(`📊 Message ID: ${response.data.id}\n`);
+
+      // Create SMS log entry
+      const logResult = await pool.query(`
+        INSERT INTO sms_logs (message, recipient_count, sent_by, cost_estimate)
+        VALUES ($1, $2, $3, $4)
+        RETURNING id
+      `, [message, recipients.length, req.user.username, cost_nok]);
+
+      const smsLogId = logResult.rows[0].id;
+
+      // Log each recipient
+      for (const recipient of recipients) {
         await pool.query(`
           INSERT INTO sms_recipients (sms_log_id, member_id, phone_number, status, twilio_sid)
           VALUES ($1, $2, $3, $4, $5)
-        `, [smsLogId, recipient.id, recipient.phone_number, 'sent', twilioMessage.sid]);
+        `, [smsLogId, recipient.id, recipient.phone_number, 'sent', response.data.id]);
+      }
 
-        return { success: true, recipient: recipient.full_name };
-      } catch (err) {
-        console.error(`❌ SMS send error for ${recipient.phone_number}:`, err.message);
+      res.json({
+        message: `SMS sendt fra "${MESSAGEBIRD_CONFIG.sender}" til ${recipients.length} medlemmer!`,
+        sent: recipients.length,
+        failed: 0,
+        cost: `${cost_nok.toFixed(2)} NOK`,
+        sender: MESSAGEBIRD_CONFIG.sender,
+        message_id: response.data.id
+      });
 
-        // Log failed recipient
+    } catch (messageBirdError) {
+      console.error('❌ MessageBird Error:', messageBirdError.response?.data || messageBirdError.message);
+
+      // Log failed attempt
+      const logResult = await pool.query(`
+        INSERT INTO sms_logs (message, recipient_count, sent_by, cost_estimate)
+        VALUES ($1, $2, $3, $4)
+        RETURNING id
+      `, [message, recipients.length, req.user.username, 0]);
+
+      const smsLogId = logResult.rows[0].id;
+
+      // Log all recipients as failed
+      for (const recipient of recipients) {
         await pool.query(`
           INSERT INTO sms_recipients (sms_log_id, member_id, phone_number, status)
           VALUES ($1, $2, $3, $4)
         `, [smsLogId, recipient.id, recipient.phone_number, 'failed']);
-
-        return { success: false, recipient: recipient.full_name, error: err.message };
       }
-    });
 
-    const results = await Promise.all(sendPromises);
-    const successCount = results.filter(r => r.success).length;
+      throw new Error('SMS sending failed: ' + (messageBirdError.response?.data?.errors?.[0]?.description || messageBirdError.message));
+    }
 
-    res.json({
-      message: `SMS sent to ${successCount} of ${recipients.length} recipients`,
-      sent: successCount,
-      failed: recipients.length - successCount,
-      details: results
-    });
   } catch (err) {
     console.error('SMS send error:', err);
-    res.status(500).json({ error: 'Failed to send SMS' });
+    res.status(500).json({ error: err.message || 'Failed to send SMS' });
   }
 });
 
@@ -524,7 +524,8 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
     service: 'Members Management API',
-    twilio: twilioClient ? 'enabled' : 'disabled'
+    sms_provider: 'MessageBird',
+    sms_enabled: messageBirdConfigured
   });
 });
 
