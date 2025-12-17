@@ -363,7 +363,7 @@ app.get('/api/super-admin/churches', authenticateSuperAdmin, async (req, res) =>
     const result = await pool.query(`
       SELECT c.*,
         (SELECT COUNT(*) FROM church_admins WHERE church_id = c.id) as admin_count,
-        (SELECT COUNT(*) FROM members WHERE church_id = c.id) as member_count,
+        (SELECT COUNT(*) FROM members WHERE is_active = true) as member_count,
         (SELECT COUNT(*) FROM church_news WHERE church_id = c.id) as news_count
       FROM churches c
       ORDER BY c.created_at DESC
