@@ -362,12 +362,12 @@ app.post('/api/sms/send', authenticateToken, async (req, res) => {
       return res.status(503).json({ error: 'SMS service not configured' });
     }
 
-    // Get members with SMS consent (support both old and new column names)
+    // Get members with SMS consent
     const placeholders = member_ids.map((_, i) => `$${i + 1}`).join(',');
     const result = await pool.query(`
       SELECT id,
-             COALESCE(full_name, name) as full_name,
-             COALESCE(phone_number, phone) as phone_number
+             full_name,
+             phone_number
       FROM members
       WHERE id IN (${placeholders})
       AND sms_consent = true

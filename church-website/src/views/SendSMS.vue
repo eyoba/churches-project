@@ -98,7 +98,7 @@
             </div>
             <div class="cost-line">
               <span>Kostnad per SMS:</span>
-              <strong>~0.16 NOK</strong>
+              <strong>~0.18 NOK</strong>
             </div>
             <div class="cost-line total">
               <span>Total kostnad:</span>
@@ -161,7 +161,7 @@ export default {
       })
     },
     estimatedCost() {
-      return (this.selectedMembers.length * 0.16).toFixed(2)
+      return (this.selectedMembers.length * 0.18).toFixed(2)
     },
     canSend() {
       return (
