@@ -272,8 +272,16 @@ export default {
   gap: 2rem;
 }
 
-.recipients-section,
+.recipients-section {
+  grid-column: 1;
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
 .message-section {
+  grid-column: 2;
   background: white;
   border: 1px solid var(--gray-200);
   border-radius: 8px;
@@ -330,6 +338,7 @@ export default {
   display: flex;
   align-items: center;
   padding: 1rem;
+  margin-right: 16rem;
   cursor: pointer;
   transition: background 0.2s;
 }
@@ -480,6 +489,10 @@ export default {
 
   .header-actions {
     flex-wrap: wrap;
+  }
+
+  .member-item label {
+    margin-right: 0;
   }
 }
 </style>
