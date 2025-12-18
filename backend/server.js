@@ -3,7 +3,7 @@ const cors = require('cors');
 const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const axios = require('axios');
+const twilio = require('twilio');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const path = require('path');
@@ -39,14 +39,12 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }, // Always use SSL for Azure PostgreSQL
   // Connection pool settings to handle idle connections
   max: 20, // Maximum number of clients in the pool
-  min: 4, // Minimum number of clients in the pool (increased to keep more connections alive)
-  idleTimeoutMillis: 60000, // Close idle clients after 60 seconds (increased from 30s)
-  connectionTimeoutMillis: 15000, // Return an error after 15 seconds (increased from 10s for Azure)
+  min: 2, // Minimum number of clients in the pool (keep connections alive)
+  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
+  connectionTimeoutMillis: 10000, // Return an error after 10 seconds if connection cannot be established
   // Keep connections alive to prevent Azure from closing them
   keepAlive: true,
-  keepAliveInitialDelayMillis: 5000, // Start keepalive earlier (reduced from 10s to 5s)
-  // Add statement timeout to prevent hanging queries
-  statement_timeout: 30000 // Kill queries that take longer than 30 seconds
+  keepAliveInitialDelayMillis: 10000 // Start keepalive after 10 seconds
 });
 
 // Handle pool errors to prevent app crashes
@@ -71,28 +69,13 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// ============================================
-// BIRD.COM (NEW MESSAGEBIRD) SMS CONFIGURATION
-// ============================================
-const BIRD_CONFIG = {
-  api_url: 'https://api.bird.com',
-  api_key: process.env.BIRD_API_KEY,
-  workspace_id: process.env.BIRD_WORKSPACE_ID,
-  channel_id: process.env.BIRD_CHANNEL_ID,
-  sender: process.env.BIRD_SENDER || 'DEBREIYESUS'
-};
-
-// Check Bird configuration
-let birdConfigured = false;
-if (process.env.BIRD_API_KEY && process.env.BIRD_WORKSPACE_ID && process.env.BIRD_CHANNEL_ID) {
-  birdConfigured = true;
-  console.log('✅ Bird.com SMS configured');
-  console.log(`📤 Workspace: ${BIRD_CONFIG.workspace_id}`);
-  console.log(`📤 Channel ID: ${BIRD_CONFIG.channel_id}`);
-  console.log(`📤 SMS Sender ID: ${BIRD_CONFIG.sender}`);
-} else {
-  console.log('⚠️  Bird.com not configured - SMS features will be disabled');
-  console.log('   To enable SMS: Configure BIRD_API_KEY, BIRD_WORKSPACE_ID, BIRD_CHANNEL_ID, and BIRD_SENDER in .env');
+// Twilio (optional - only initialize if credentials are provided)
+let twilioClient = null;
+if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_ACCOUNT_SID.startsWith('AC')) {
+  twilioClient = twilio(
+    process.env.TWILIO_ACCOUNT_SID,
+    process.env.TWILIO_AUTH_TOKEN
+  );
 }
 
 // File upload configuration
@@ -134,18 +117,12 @@ const authenticateSuperAdmin = (req, res, next) => {
 
 // Get all active churches
 app.get('/api/churches', async (req, res) => {
-  const startTime = Date.now();
   try {
-    console.log('📍 GET /api/churches - Fetching churches...');
     const result = await pool.query(
       'SELECT id, name, slug, address, phone, email, pastor_name, description, logo_url, field_labels, display_order, facebook FROM churches WHERE is_active = true ORDER BY display_order ASC, name ASC'
     );
-    const duration = Date.now() - startTime;
-    console.log(`✅ Churches fetched: ${result.rows.length} churches in ${duration}ms`);
     res.json(result.rows);
   } catch (error) {
-    const duration = Date.now() - startTime;
-    console.error(`❌ Error fetching churches after ${duration}ms:`, error.message);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1013,124 +990,59 @@ app.delete('/api/sms/members/:id', authenticateChurchAdmin, async (req, res) => 
 app.post('/api/sms/send', authenticateChurchAdmin, async (req, res) => {
   try {
     const { member_ids, message } = req.body;
-
-    if (!member_ids || member_ids.length === 0) {
-      return res.status(400).json({ error: 'No recipients selected' });
-    }
-
-    if (!message || message.trim().length === 0) {
-      return res.status(400).json({ error: 'Message is required' });
-    }
-
-    if (!birdConfigured) {
-      return res.status(503).json({ error: 'SMS service not configured' });
-    }
-
+    
     // Get members (verify they belong to this church)
     const result = await pool.query(
-      'SELECT id, phone, name FROM members WHERE id = ANY($1) AND church_id = $2 AND is_active = true',
+      'SELECT phone, name FROM members WHERE id = ANY($1) AND church_id = $2 AND is_active = true',
       [member_ids, req.admin.church_id]
     );
-
+    
     if (result.rows.length === 0) {
       return res.status(400).json({ error: 'No valid members selected' });
     }
-
+    
     const recipients = result.rows;
+    const phoneNumbers = recipients.map(r => r.phone);
+    const successfulSends = [];
+    const failedSends = [];
 
-    // Format phone numbers for Bird API (remove + and spaces)
-    const phoneNumbers = recipients.map(r =>
-      r.phone.replace(/\+/g, '').replace(/\s/g, '')
-    );
-
-    console.log(`\n📤 Sending SMS to ${recipients.length} members via Bird.com...`);
-    console.log(`📝 Workspace: ${BIRD_CONFIG.workspace_id}`);
-    console.log(`📝 Sender: ${BIRD_CONFIG.sender}\n`);
-
-    // Send SMS via Bird.com API
-    try {
-      // Format contacts for Bird API
-      const contacts = phoneNumbers.map(phone => ({
-        identifierKey: 'phonenumber',
-        identifierValue: phone
-      }));
-
-      const requestBody = {
-        receiver: {
-          contacts: contacts
-        },
-        body: {
-          type: 'text',
-          text: {
-            text: message
-          }
-        }
-      };
-
-      console.log('📤 Bird.com request:', JSON.stringify(requestBody, null, 2));
-
-      const response = await axios.post(
-        `${BIRD_CONFIG.api_url}/workspaces/${BIRD_CONFIG.workspace_id}/channels/${BIRD_CONFIG.channel_id}/messages`,
-        requestBody,
-        {
-          headers: {
-            'Authorization': `AccessKey ${BIRD_CONFIG.api_key}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      // Calculate cost (€0.016 per SMS = ~0.18 NOK per SMS)
-      const cost_eur = recipients.length * 0.016;
-      const cost_nok = cost_eur * 11.5;
-
-      console.log(`✅ SMS sent to ${recipients.length} members!`);
-      console.log(`💰 Cost: €${cost_eur.toFixed(2)} (${cost_nok.toFixed(2)} NOK)`);
-      console.log(`📊 Message ID: ${response.data.id}\n`);
-
-      // Log SMS
-      await pool.query(`
-        INSERT INTO sms_logs (church_id, sent_by, message, recipient_count, recipients, status, cost)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-      `, [req.admin.church_id, req.admin.admin_id, message, recipients.length, phoneNumbers, 'sent', cost_nok]);
-
-      res.json({
-        success: true,
-        message: `SMS sent from "${BIRD_CONFIG.sender}" to ${recipients.length} members!`,
-        sent: recipients.length,
-        failed: 0,
-        cost: `${cost_nok.toFixed(2)} NOK`,
-        sender: BIRD_CONFIG.sender,
-        message_id: response.data.id
+    // Check if Twilio is configured
+    if (!twilioClient) {
+      return res.status(400).json({
+        error: 'SMS service not configured. Please add Twilio credentials to .env file.'
       });
-
-    } catch (birdError) {
-      console.error('❌ Bird.com API Error:');
-      console.error('Status:', birdError.response?.status);
-      console.error('Data:', birdError.response?.data);
-      console.error('Message:', birdError.message);
-
-      // Log failed attempt
-      await pool.query(`
-        INSERT INTO sms_logs (church_id, sent_by, message, recipient_count, recipients, status, cost)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-      `, [req.admin.church_id, req.admin.admin_id, message, recipients.length, phoneNumbers, 'failed', 0]);
-
-      // Better error messages
-      let errorMessage = 'SMS sending failed';
-      if (birdError.response?.data?.message) {
-        errorMessage = `Bird API: ${birdError.response.data.message}`;
-      } else if (birdError.response?.data?.error) {
-        errorMessage = `Bird API: ${birdError.response.data.error}`;
-      } else if (birdError.message) {
-        errorMessage = `SMS sending failed: ${birdError.message}`;
-      }
-
-      throw new Error(errorMessage);
     }
+
+    // Send SMS
+    for (const recipient of recipients) {
+      try {
+        const smsResult = await twilioClient.messages.create({
+          body: message,
+          from: process.env.TWILIO_PHONE_NUMBER,
+          to: recipient.phone
+        });
+        successfulSends.push({ name: recipient.name, phone: recipient.phone, status: smsResult.status });
+      } catch (smsError) {
+        failedSends.push({ name: recipient.name, phone: recipient.phone, error: smsError.message });
+      }
+    }
+    
+    // Log SMS
+    const cost = successfulSends.length * 0.0075;
+    await pool.query(`
+      INSERT INTO sms_logs (church_id, sent_by, message, recipient_count, recipients, status, cost)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `, [req.admin.church_id, req.admin.admin_id, message, successfulSends.length, phoneNumbers, 'sent', cost]);
+    
+    res.json({
+      success: true,
+      sent: successfulSends.length,
+      failed: failedSends.length,
+      cost: `$${cost.toFixed(4)}`,
+      details: { successful: successfulSends, failed: failedSends }
+    });
   } catch (error) {
-    console.error('SMS send error:', error);
-    res.status(500).json({ error: error.message || 'Failed to send SMS' });
+    res.status(500).json({ error: error.message });
   }
 });
 

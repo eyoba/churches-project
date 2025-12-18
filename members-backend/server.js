@@ -3,7 +3,7 @@ const { Pool } = require('pg');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const axios = require('axios');
+const twilio = require('twilio');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
@@ -41,28 +41,24 @@ pool.query('SELECT NOW()', (err, res) => {
   }
 });
 
-// ============================================
-// BIRD.COM (NEW MESSAGEBIRD) SMS CONFIGURATION
-// ============================================
-const BIRD_CONFIG = {
-  api_url: 'https://api.bird.com',
-  api_key: process.env.BIRD_API_KEY,
-  workspace_id: process.env.BIRD_WORKSPACE_ID,
-  channel_id: process.env.BIRD_CHANNEL_ID,
-  sender: process.env.BIRD_SENDER || 'DEBREIYESUS'
-};
-
-// Check Bird configuration
-let birdConfigured = false;
-if (process.env.BIRD_API_KEY && process.env.BIRD_WORKSPACE_ID && process.env.BIRD_CHANNEL_ID) {
-  birdConfigured = true;
-  console.log('✅ Bird.com SMS configured');
-  console.log(`📤 Workspace ID: ${BIRD_CONFIG.workspace_id}`);
-  console.log(`📤 Channel ID: ${BIRD_CONFIG.channel_id}`);
-  console.log(`📤 SMS Sender ID: ${BIRD_CONFIG.sender}`);
+// Twilio Client (optional - only if configured)
+let twilioClient = null;
+if (process.env.TWILIO_ACCOUNT_SID &&
+    process.env.TWILIO_AUTH_TOKEN &&
+    process.env.TWILIO_ACCOUNT_SID.startsWith('AC')) {
+  try {
+    twilioClient = twilio(
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_AUTH_TOKEN
+    );
+    console.log('✅ Twilio client initialized');
+  } catch (err) {
+    console.log('⚠️  Twilio initialization failed:', err.message);
+    console.log('⚠️  SMS features will be disabled');
+  }
 } else {
-  console.log('⚠️  Bird.com not configured - SMS features will be disabled');
-  console.log('   To enable SMS: Configure BIRD_API_KEY, BIRD_WORKSPACE_ID, BIRD_CHANNEL_ID, and BIRD_SENDER in .env');
+  console.log('⚠️  Twilio not configured - SMS features will be disabled');
+  console.log('   To enable SMS: Configure TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER in .env');
 }
 
 // JWT Middleware
@@ -364,7 +360,7 @@ app.post('/api/sms/send', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Message is required' });
     }
 
-    if (!birdConfigured) {
+    if (!twilioClient) {
       return res.status(503).json({ error: 'SMS service not configured' });
     }
 
@@ -386,131 +382,89 @@ app.post('/api/sms/send', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'No eligible recipients found' });
     }
 
-    // Format phone numbers for Bird API (ensure + prefix and no spaces)
-    const phoneNumbers = recipients.map(r => {
-      let phone = r.phone_number.replace(/\s/g, '');
-      // Ensure phone number starts with +
-      if (!phone.startsWith('+')) {
-        phone = '+' + phone;
-      }
-      return phone;
-    });
+    // Create SMS log entry
+    const logResult = await pool.query(`
+      INSERT INTO sms_logs (message, recipient_count, sent_by, cost_estimate)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id
+    `, [message, recipients.length, req.user.username, recipients.length * 0.16]);
 
-    console.log(`\n📤 Sender SMS til ${recipients.length} medlemmer via Bird.com...`);
-    console.log(`📝 Workspace: ${BIRD_CONFIG.workspace_id}`);
-    console.log(`📝 Avsender: ${BIRD_CONFIG.sender}`);
-    console.log(`📝 Phone numbers:`, phoneNumbers);
-    console.log('');
+    const smsLogId = logResult.rows[0].id;
 
-    // Send SMS via Bird.com API
-    try {
-      // Format contacts for Bird API
-      const contacts = phoneNumbers.map(phone => ({
-        identifierKey: 'phonenumber',
-        identifierValue: phone
-      }));
+    // Send SMS to each recipient with alphanumeric sender ID
+    const sendPromises = recipients.map(async (recipient) => {
+      try {
+        // Try sending with alphanumeric sender ID first (if configured)
+        let twilioMessage;
+        const senderID = process.env.SMS_SENDER_ID;
 
-      const requestBody = {
-        receiver: {
-          contacts: contacts
-        },
-        body: {
-          type: 'text',
-          text: {
-            text: message
+        try {
+          const fromNumber = senderID || process.env.TWILIO_PHONE_NUMBER;
+
+          twilioMessage = await twilioClient.messages.create({
+            body: message,
+            from: fromNumber,
+            to: recipient.phone_number
+          });
+
+          if (senderID) {
+            console.log(`✅ Sendt med alphanumeric sender ID "${senderID}" til: ${recipient.phone_number}`);
+          } else {
+            console.log(`✅ Sendt med telefonnummer ${fromNumber} til: ${recipient.phone_number}`);
+          }
+
+        } catch (alphaError) {
+          // If alphanumeric fails (trial account, not supported, etc), fallback to phone number
+          if (alphaError.code === 21612 || alphaError.code === 21606 ||
+              alphaError.message?.includes('Alphanumeric Sender ID') ||
+              alphaError.message?.includes('trial account')) {
+            console.log(`⚠️ Alphanumeric ikke støttet for ${recipient.phone_number}, bruker fallback-nummer`);
+            console.log(`   Grunn: ${alphaError.message}`);
+
+            twilioMessage = await twilioClient.messages.create({
+              body: message,
+              from: process.env.TWILIO_PHONE_NUMBER,  // Fallback til US-nummer
+              to: recipient.phone_number
+            });
+
+            console.log(`✅ Sendt med fallback-nummer til: ${recipient.phone_number}`);
+          } else {
+            throw alphaError;  // Other errors should be caught by outer catch
           }
         }
-      };
 
-      console.log('📤 Bird.com request:', JSON.stringify(requestBody, null, 2));
-
-      const response = await axios.post(
-        `${BIRD_CONFIG.api_url}/workspaces/${BIRD_CONFIG.workspace_id}/channels/${BIRD_CONFIG.channel_id}/messages`,
-        requestBody,
-        {
-          headers: {
-            'Authorization': `AccessKey ${BIRD_CONFIG.api_key}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      // Log full response for debugging
-      console.log('📨 Bird.com API Response:', JSON.stringify(response.data, null, 2));
-
-      // Calculate cost (€0.016 per SMS = ~0.18 NOK per SMS)
-      const cost_eur = recipients.length * 0.016;
-      const cost_nok = cost_eur * 11.5;
-
-      console.log(`✅ SMS sendt til ${recipients.length} medlemmer!`);
-      console.log(`💰 Kostnad: €${cost_eur.toFixed(2)} (${cost_nok.toFixed(2)} NOK)`);
-      console.log(`📊 Message ID: ${response.data.id}\n`);
-
-      // Create SMS log entry
-      const logResult = await pool.query(`
-        INSERT INTO sms_logs (message, recipient_count, sent_by, cost_estimate)
-        VALUES ($1, $2, $3, $4)
-        RETURNING id
-      `, [message, recipients.length, req.user.username, cost_nok]);
-
-      const smsLogId = logResult.rows[0].id;
-
-      // Log each recipient
-      for (const recipient of recipients) {
+        // Log recipient
         await pool.query(`
           INSERT INTO sms_recipients (sms_log_id, member_id, phone_number, status, twilio_sid)
           VALUES ($1, $2, $3, $4, $5)
-        `, [smsLogId, recipient.id, recipient.phone_number, 'sent', response.data.id]);
-      }
+        `, [smsLogId, recipient.id, recipient.phone_number, 'sent', twilioMessage.sid]);
 
-      res.json({
-        message: `SMS sendt fra "${BIRD_CONFIG.sender}" til ${recipients.length} medlemmer!`,
-        sent: recipients.length,
-        failed: 0,
-        cost: `${cost_nok.toFixed(2)} NOK`,
-        sender: BIRD_CONFIG.sender,
-        message_id: response.data.id
-      });
+        return { success: true, recipient: recipient.full_name };
+      } catch (err) {
+        console.error(`❌ SMS send error for ${recipient.phone_number}:`, err.message);
 
-    } catch (birdError) {
-      console.error('❌ Bird.com API Error:');
-      console.error('Status:', birdError.response?.status);
-      console.error('Data:', birdError.response?.data);
-      console.error('Message:', birdError.message);
-
-      // Log failed attempt
-      const logResult = await pool.query(`
-        INSERT INTO sms_logs (message, recipient_count, sent_by, cost_estimate)
-        VALUES ($1, $2, $3, $4)
-        RETURNING id
-      `, [message, recipients.length, req.user.username, 0]);
-
-      const smsLogId = logResult.rows[0].id;
-
-      // Log all recipients as failed
-      for (const recipient of recipients) {
+        // Log failed recipient
         await pool.query(`
           INSERT INTO sms_recipients (sms_log_id, member_id, phone_number, status)
           VALUES ($1, $2, $3, $4)
         `, [smsLogId, recipient.id, recipient.phone_number, 'failed']);
+
+        return { success: false, recipient: recipient.full_name, error: err.message };
       }
+    });
 
-      // Better error messages
-      let errorMessage = 'SMS sending failed';
-      if (birdError.response?.data?.message) {
-        errorMessage = `Bird API: ${birdError.response.data.message}`;
-      } else if (birdError.response?.data?.error) {
-        errorMessage = `Bird API: ${birdError.response.data.error}`;
-      } else if (birdError.message) {
-        errorMessage = `SMS sending failed: ${birdError.message}`;
-      }
+    const results = await Promise.all(sendPromises);
+    const successCount = results.filter(r => r.success).length;
 
-      throw new Error(errorMessage);
-    }
-
+    res.json({
+      message: `SMS sent to ${successCount} of ${recipients.length} recipients`,
+      sent: successCount,
+      failed: recipients.length - successCount,
+      details: results
+    });
   } catch (err) {
     console.error('SMS send error:', err);
-    res.status(500).json({ error: err.message || 'Failed to send SMS' });
+    res.status(500).json({ error: 'Failed to send SMS' });
   }
 });
 
@@ -570,8 +524,7 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
     service: 'Members Management API',
-    sms_provider: 'Bird.com',
-    sms_enabled: birdConfigured
+    twilio: twilioClient ? 'enabled' : 'disabled'
   });
 });
 
