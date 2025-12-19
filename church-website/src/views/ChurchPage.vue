@@ -43,6 +43,13 @@
                 <strong>{{ getFieldLabel('facebook') }}:</strong> <a :href="church.facebook" target="_blank">Visit Page</a>
               </div>
             </div>
+
+            <!-- Members Login Link -->
+            <div v-if="church.show_members_link" class="members-link-section">
+              <router-link to="/members/login" class="btn btn-secondary">
+                Medlemssystem / Members Login
+              </router-link>
+            </div>
           </div>
         </div>
       </div>
@@ -330,6 +337,12 @@ export default {
 
 .contact-item a:hover {
   text-decoration: underline;
+}
+
+.members-link-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 /* Tabs */

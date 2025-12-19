@@ -206,6 +206,20 @@
         </div>
 
         <div class="form-group">
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              v-model="church.show_members_link"
+              :disabled="saving"
+            >
+            <span>Show Members Login Link on Church Page</span>
+          </label>
+          <small class="form-help">
+            When enabled, a "Medlemssystem / Members Login" button will appear on your church page, making it easy for admins to access the members system.
+          </small>
+        </div>
+
+        <div class="form-group">
           <label for="background_color">Church Page Background Color</label>
           <div class="color-picker-container">
             <input
@@ -320,7 +334,8 @@ export default {
         logo_url: '',
         display_order: 0,
         facebook: '',
-        background_color: '#3b82f6'
+        background_color: '#3b82f6',
+        show_members_link: false
       },
       fieldLabels: {
         pastor_name: 'Pastor',
@@ -373,7 +388,8 @@ export default {
             logo_url: response.data.church.logo_url || '',
             display_order: response.data.church.display_order || 0,
             facebook: response.data.church.facebook || '',
-            background_color: response.data.church.background_color || '#3b82f6'
+            background_color: response.data.church.background_color || '#3b82f6',
+            show_members_link: response.data.church.show_members_link || false
           }
           this.originalChurch = { ...this.church }
 
@@ -733,5 +749,24 @@ export default {
   height: 40px;
   border-radius: 4px;
   border: 1px solid var(--gray-300);
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--gray-700);
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.checkbox-label span {
+  user-select: none;
 }
 </style>

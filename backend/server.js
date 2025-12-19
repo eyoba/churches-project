@@ -119,7 +119,7 @@ const authenticateSuperAdmin = (req, res, next) => {
 app.get('/api/churches', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, name, slug, address, phone, email, pastor_name, description, logo_url, field_labels, display_order, facebook FROM churches WHERE is_active = true ORDER BY display_order ASC, name ASC'
+      'SELECT id, name, slug, address, phone, email, pastor_name, description, logo_url, field_labels, display_order, facebook, show_members_link FROM churches WHERE is_active = true ORDER BY display_order ASC, name ASC'
     );
     res.json(result.rows);
   } catch (error) {
@@ -575,7 +575,8 @@ app.put('/api/church-admin/church-info', authenticateChurchAdmin, async (req, re
       name, address, phone, email, website, logo_url,
       pastor_name, pastor_phone, pastor_email, pastor_bio,
       sunday_service_time, wednesday_service_time, other_service_times,
-      description, mission_statement, field_labels, display_order, facebook, background_color
+      description, mission_statement, field_labels, display_order, facebook, background_color,
+      show_members_link
     } = req.body;
 
     console.log('Received background_color from client:', background_color);
@@ -587,13 +588,13 @@ app.put('/api/church-admin/church-info', authenticateChurchAdmin, async (req, re
         pastor_name = $7, pastor_phone = $8, pastor_email = $9, pastor_bio = $10,
         sunday_service_time = $11, wednesday_service_time = $12, other_service_times = $13,
         description = $14, mission_statement = $15, field_labels = $16, display_order = $17,
-        facebook = $18, background_color = $19, updated_at = NOW()
-      WHERE id = $20
+        facebook = $18, background_color = $19, show_members_link = $20, updated_at = NOW()
+      WHERE id = $21
       RETURNING *
     `, [name, address, phone, email, website, logo_url, pastor_name, pastor_phone, pastor_email,
         pastor_bio, sunday_service_time, wednesday_service_time, other_service_times,
         description, mission_statement, field_labels ? JSON.stringify(field_labels) : null,
-        display_order || 0, facebook, background_color || '#3b82f6', church_id]);
+        display_order || 0, facebook, background_color || '#3b82f6', show_members_link || false, church_id]);
 
     console.log('Updated church background_color in DB:', result.rows[0].background_color);
     res.json(result.rows[0]);
