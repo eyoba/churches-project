@@ -106,8 +106,11 @@ export default {
     }
   },
   async mounted() {
-    await this.fetchSiteSettings()
-    await this.fetchChurches()
+    // Fetch both in parallel for faster loading
+    await Promise.all([
+      this.fetchSiteSettings(),
+      this.fetchChurches()
+    ])
   },
   methods: {
     async fetchSiteSettings() {
