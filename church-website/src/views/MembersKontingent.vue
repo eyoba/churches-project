@@ -76,24 +76,6 @@
     </div>
 
     <div v-else>
-      <div class="summary-card">
-        <h3>Sammendrag for {{ currentMonthName }}</h3>
-        <div class="summary-stats">
-          <div class="summary-item">
-            <span class="summary-label">Totalt medlemmer 18+:</span>
-            <strong>{{ members.length }}</strong>
-          </div>
-          <div class="summary-item">
-            <span class="summary-label">Betalt:</span>
-            <strong class="text-success">{{ paidCount }}</strong>
-          </div>
-          <div class="summary-item">
-            <span class="summary-label">Ikke betalt:</span>
-            <strong class="text-danger">{{ unpaidCount }}</strong>
-          </div>
-        </div>
-      </div>
-
       <div v-if="filteredMembers.length === 0" class="no-data">
         Ingen medlemmer funnet med søk "{{ searchQuery }}"
       </div>
@@ -141,6 +123,24 @@
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <div class="summary-card">
+        <h3>Sammendrag for {{ currentMonthName }}</h3>
+        <div class="summary-stats">
+          <div class="summary-item">
+            <span class="summary-label">Totalt medlemmer 18+:</span>
+            <strong>{{ members.length }}</strong>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Betalt:</span>
+            <strong class="text-success">{{ paidCount }}</strong>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Ikke betalt:</span>
+            <strong class="text-danger">{{ unpaidCount }}</strong>
+          </div>
+        </div>
       </div>
     </div>
     </div>
