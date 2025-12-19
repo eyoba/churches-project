@@ -102,7 +102,7 @@ export default {
     },
     handleLogout() {
       membersService.logout()
-      this.$router.push('/members/login')
+      this.$router.push('/')
     }
   }
 }
