@@ -83,15 +83,69 @@ export default {
     return response.data
   },
 
+  // Kontingent Operations
+  async getKontingentForMonth(month) {
+    const response = await api.get(`/api/kontingent/${month}`)
+    return response.data
+  },
+
+  async updateKontingentPayment(memberId, month, paid, amount = null, notes = null) {
+    const response = await api.post('/api/kontingent/update', {
+      memberId,
+      month,
+      paid,
+      amount,
+      notes
+    })
+    return response.data
+  },
+
   // Dashboard Stats
   async getDashboardStats() {
     const members = await this.getMembers()
     const smsStats = await this.getSMSStats()
 
+    // Calculate age from personnummer to count members 18+
+    const calculateAge = (personnummer) => {
+      if (!personnummer || personnummer.length !== 11) {
+        return 0
+      }
+
+      const day = parseInt(personnummer.substring(0, 2), 10)
+      const month = parseInt(personnummer.substring(2, 4), 10) - 1
+      const year = parseInt(personnummer.substring(4, 6), 10)
+
+      const currentYear = new Date().getFullYear()
+      const currentCentury = Math.floor(currentYear / 100) * 100
+      const previousCentury = currentCentury - 100
+
+      let fullYear = currentCentury + year
+      if (fullYear > currentYear) {
+        fullYear = previousCentury + year
+      }
+
+      const birthDate = new Date(fullYear, month, day)
+      const today = new Date()
+      let age = today.getFullYear() - birthDate.getFullYear()
+      const monthDiff = today.getMonth() - birthDate.getMonth()
+
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--
+      }
+
+      return age
+    }
+
+    const membersOver18 = members.filter(m => {
+      const age = calculateAge(m.personnummer)
+      return age >= 18
+    }).length
+
     return {
       totalMembers: members.length,
       activeMembers: members.filter(m => m.is_active).length,
       smsConsent: members.filter(m => m.sms_consent).length,
+      membersOver18,
       ...smsStats
     }
   }

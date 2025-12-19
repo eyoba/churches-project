@@ -29,15 +29,15 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label for="phone_number">Mobilnummer *</label>
+              <label for="phone_number">Mobilnummer</label>
               <input
                 type="tel"
                 id="phone_number"
                 v-model="formData.phone_number"
                 placeholder="+47 xxx xx xxx"
-                required
                 :disabled="isSubmitting"
               />
+              <small class="form-hint">Valgfritt - barn uten mobil kan hoppes over</small>
             </div>
 
             <div class="form-group">
@@ -63,7 +63,7 @@
               required
               :disabled="isSubmitting"
             />
-            <small class="form-hint">Kryptert og lagret sikkert</small>
+            <small class="form-hint">Sensitiv informasjon - behandles konfidensielt</small>
           </div>
         </div>
 

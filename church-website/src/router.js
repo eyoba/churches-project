@@ -117,6 +117,12 @@ const routes = [
         name: 'SMSLogs',
         component: () => import('./views/SMSLogs.vue'),
         meta: { requiresMembersAuth: true }
+      },
+      {
+        path: 'kontingent',
+        name: 'MembersKontingent',
+        component: () => import('./views/MembersKontingent.vue'),
+        meta: { requiresMembersAuth: true }
       }
     ]
   }

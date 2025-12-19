@@ -39,7 +39,15 @@
           <tr>
             <th>Navn</th>
             <th>Telefon</th>
-            <th>Personnummer</th>
+            <th>
+              Personnummer
+              <label class="checkbox-inline">
+                <input
+                  type="checkbox"
+                  v-model="showPersonnummer"
+                />
+              </label>
+            </th>
             <th>Adresse</th>
             <th>Medlem siden</th>
             <th>SMS</th>
@@ -51,7 +59,9 @@
           <tr v-for="member in filteredMembers" :key="member.id">
             <td class="member-name">{{ member.full_name }}</td>
             <td>{{ member.phone_number }}</td>
-            <td class="personnummer">{{ formatPersonnummer(member.personnummer) }}</td>
+            <td class="personnummer">
+              {{ showPersonnummer ? formatPersonnummer(member.personnummer) : 'xxxxx-xxxxx' }}
+            </td>
             <td>{{ formatAddress(member) }}</td>
             <td>{{ formatDate(member.member_since) }}</td>
             <td>
@@ -109,7 +119,8 @@ export default {
       errorMessage: '',
       showDeleteModal: false,
       memberToDelete: null,
-      isDeleting: false
+      isDeleting: false,
+      showPersonnummer: false
     }
   },
   async mounted() {
@@ -238,6 +249,20 @@ export default {
   border-radius: 4px;
   font-size: 1rem;
   min-width: 200px;
+}
+
+.checkbox-inline {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.5rem;
+  cursor: pointer;
+}
+
+.checkbox-inline input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  margin: 0;
 }
 
 .loading,

@@ -519,6 +519,83 @@ app.get('/api/sms/stats', authenticateToken, async (req, res) => {
   }
 });
 
+// ======================
+// KONTINGENT ROUTES
+// ======================
+
+// Get kontingent payments for a specific month
+app.get('/api/kontingent/:month', authenticateToken, async (req, res) => {
+  try {
+    const { month } = req.params; // Format: YYYY-MM
+
+    const result = await pool.query(`
+      SELECT
+        m.id as member_id,
+        m.full_name,
+        m.phone_number,
+        m.personnummer,
+        COALESCE(kp.paid, false) as paid,
+        kp.payment_date,
+        kp.amount,
+        kp.notes,
+        kp.recorded_by,
+        kp.id as payment_id
+      FROM members m
+      LEFT JOIN kontingent_payments kp ON kp.member_id = m.id AND kp.payment_month = $1
+      WHERE m.is_active = true
+      ORDER BY m.full_name ASC
+    `, [month]);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Get kontingent error:', err);
+    res.status(500).json({ error: 'Failed to retrieve kontingent data' });
+  }
+});
+
+// Update kontingent payment status
+app.post('/api/kontingent/update', authenticateToken, async (req, res) => {
+  try {
+    const { memberId, month, paid, amount, notes } = req.body;
+
+    if (!memberId || !month) {
+      return res.status(400).json({ error: 'Member ID and month are required' });
+    }
+
+    const paymentDate = paid ? new Date().toISOString().split('T')[0] : null;
+
+    const result = await pool.query(`
+      INSERT INTO kontingent_payments (member_id, payment_month, paid, payment_date, amount, notes, recorded_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      ON CONFLICT (member_id, payment_month)
+      DO UPDATE SET
+        paid = $3,
+        payment_date = $4,
+        amount = $5,
+        notes = $6,
+        recorded_by = $7,
+        updated_at = CURRENT_TIMESTAMP
+      RETURNING *
+    `, [memberId, month, paid, paymentDate, amount || null, notes || null, req.user.username]);
+
+    // Log audit
+    await logAudit(
+      req.user.username,
+      paid ? 'MARK_PAID' : 'MARK_UNPAID',
+      'kontingent_payments',
+      result.rows[0].id,
+      null,
+      { memberId, month, paid, amount },
+      req.ip
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Update kontingent error:', err);
+    res.status(500).json({ error: 'Failed to update kontingent payment' });
+  }
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({

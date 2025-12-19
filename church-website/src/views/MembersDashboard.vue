@@ -40,6 +40,14 @@
             <div class="stat-label">SMS sendt (totalt)</div>
           </div>
         </div>
+
+        <div class="stat-card clickable" @click="goToKontingent">
+          <div class="stat-icon">💰</div>
+          <div class="stat-content">
+            <div class="stat-value">{{ stats.membersOver18 || 0 }}</div>
+            <div class="stat-label">Månedlig kontingent (18+ år)</div>
+          </div>
+        </div>
       </div>
 
       <div class="action-cards">
@@ -82,7 +90,8 @@ export default {
         totalMembers: 0,
         activeMembers: 0,
         smsConsent: 0,
-        totalSMS: 0
+        totalSMS: 0,
+        membersOver18: 0
       },
       isLoading: true
     }
@@ -103,6 +112,9 @@ export default {
     handleLogout() {
       membersService.logout()
       this.$router.push('/')
+    },
+    goToKontingent() {
+      this.$router.push('/members/kontingent')
     }
   }
 }
@@ -148,6 +160,17 @@ export default {
   display: flex;
   align-items: center;
   gap: 1rem;
+}
+
+.stat-card.clickable {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.stat-card.clickable:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  border-color: var(--primary-color);
 }
 
 .stat-icon {
