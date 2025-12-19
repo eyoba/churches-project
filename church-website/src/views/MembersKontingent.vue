@@ -114,7 +114,7 @@
                   class="btn btn-sm btn-success"
                   :disabled="updatingMemberId === member.member_id"
                 >
-                  {{ updatingMemberId === member.member_id ? 'Lagrer...' : 'Merk som betalt' }}
+                  {{ updatingMemberId === member.member_id ? 'Lagrer...' : 'Betale' }}
                 </button>
                 <button
                   v-else
@@ -122,7 +122,7 @@
                   class="btn btn-sm btn-warning"
                   :disabled="updatingMemberId === member.member_id"
                 >
-                  {{ updatingMemberId === member.member_id ? 'Lagrer...' : 'Merk som ikke betalt' }}
+                  {{ updatingMemberId === member.member_id ? 'Lagrer...' : 'Angre' }}
                 </button>
               </td>
             </tr>
@@ -205,7 +205,7 @@
               class="btn btn-sm btn-success month-btn"
               :disabled="updatingMonth === monthData.month"
             >
-              {{ updatingMonth === monthData.month ? '...' : 'Betalt' }}
+              {{ updatingMonth === monthData.month ? '...' : 'Betale' }}
             </button>
             <button
               v-else
@@ -213,7 +213,7 @@
               class="btn btn-sm btn-warning month-btn"
               :disabled="updatingMonth === monthData.month"
             >
-              {{ updatingMonth === monthData.month ? '...' : 'Ikke betalt' }}
+              {{ updatingMonth === monthData.month ? '...' : 'Angre' }}
             </button>
           </div>
         </div>

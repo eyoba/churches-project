@@ -8,6 +8,32 @@
     <div v-if="isLoading" class="loading">Laster statistikk...</div>
 
     <div v-else class="dashboard-content">
+      <div class="action-cards">
+        <router-link to="/members/list" class="action-card">
+          <div class="action-icon">📋</div>
+          <h3>Se alle medlemmer</h3>
+          <p>Vis, søk og filtrer medlemslisten</p>
+        </router-link>
+
+        <router-link to="/members/add" class="action-card">
+          <div class="action-icon">➕</div>
+          <h3>Legg til medlem</h3>
+          <p>Registrer nytt medlem i systemet</p>
+        </router-link>
+
+        <router-link to="/members/send-sms" class="action-card">
+          <div class="action-icon">📨</div>
+          <h3>Send SMS</h3>
+          <p>Send melding til medlemmer</p>
+        </router-link>
+
+        <router-link to="/members/kontingent" class="action-card">
+          <div class="action-icon">💰</div>
+          <h3>Månedlig kontingent</h3>
+          <p>Administrer medlemskontingent (18+ år)</p>
+        </router-link>
+      </div>
+
       <div class="stats-grid">
         <div class="stat-card">
           <div class="stat-icon">👥</div>
@@ -41,34 +67,16 @@
           </div>
         </div>
 
-        <div class="stat-card clickable" @click="goToKontingent">
-          <div class="stat-icon">💰</div>
+        <div class="stat-card">
+          <div class="stat-icon">🎂</div>
           <div class="stat-content">
             <div class="stat-value">{{ stats.membersOver18 || 0 }}</div>
-            <div class="stat-label">Månedlig kontingent (18+ år)</div>
+            <div class="stat-label">Medlemmer 18+ år</div>
           </div>
         </div>
       </div>
 
-      <div class="action-cards">
-        <router-link to="/members/list" class="action-card">
-          <div class="action-icon">📋</div>
-          <h3>Se alle medlemmer</h3>
-          <p>Vis, søk og filtrer medlemslisten</p>
-        </router-link>
-
-        <router-link to="/members/add" class="action-card">
-          <div class="action-icon">➕</div>
-          <h3>Legg til medlem</h3>
-          <p>Registrer nytt medlem i systemet</p>
-        </router-link>
-
-        <router-link to="/members/send-sms" class="action-card">
-          <div class="action-icon">📨</div>
-          <h3>Send SMS</h3>
-          <p>Send melding til medlemmer</p>
-        </router-link>
-
+      <div class="secondary-actions">
         <router-link to="/members/sms-logs" class="action-card">
           <div class="action-icon">📊</div>
           <h3>SMS historikk</h3>
@@ -112,9 +120,6 @@ export default {
     handleLogout() {
       membersService.logout()
       this.$router.push('/')
-    },
-    goToKontingent() {
-      this.$router.push('/members/kontingent')
     }
   }
 }
@@ -149,7 +154,7 @@ export default {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1.5rem;
-  margin-bottom: 2rem;
+  margin-top: 2rem;
 }
 
 .stat-card {
@@ -162,16 +167,6 @@ export default {
   gap: 1rem;
 }
 
-.stat-card.clickable {
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.stat-card.clickable:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
-  border-color: var(--primary-color);
-}
 
 .stat-icon {
   font-size: 2.5rem;
@@ -194,6 +189,13 @@ export default {
 }
 
 .action-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.secondary-actions {
+  margin-top: 2rem;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1.5rem;
@@ -242,7 +244,8 @@ export default {
   }
 
   .stats-grid,
-  .action-cards {
+  .action-cards,
+  .secondary-actions {
     grid-template-columns: 1fr;
   }
 }
