@@ -906,17 +906,32 @@ export default {
     width: 100%;
   }
 
-  .month-selector,
-  .yearly-selector {
-    flex-direction: column;
-    align-items: stretch;
+  .month-selector {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.5rem;
   }
 
-  .selector-group {
+  .month-selector .selector-group {
+    flex: 1;
+    min-width: calc(50% - 0.25rem);
+  }
+
+  .month-selector .selector-group select {
     width: 100%;
   }
 
-  .selector-group select {
+  .yearly-selector {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .yearly-selector .selector-group {
+    min-width: 100%;
+  }
+
+  .yearly-selector .selector-group select {
     width: 100%;
   }
 
