@@ -9,6 +9,14 @@
 
     <div v-else class="dashboard-content">
       <div class="action-cards">
+        <div class="stat-card">
+          <div class="stat-icon">✅</div>
+          <div class="stat-content">
+            <div class="stat-value">{{ stats.activeMembers }}</div>
+            <div class="stat-label">Aktive medlemmer</div>
+          </div>
+        </div>
+
         <router-link to="/members/list" class="action-card">
           <div class="action-icon">📋</div>
           <h3>Se alle medlemmer</h3>
@@ -44,15 +52,7 @@
         </div>
 
         <div class="stat-card">
-          <div class="stat-icon">✅</div>
-          <div class="stat-content">
-            <div class="stat-value">{{ stats.activeMembers }}</div>
-            <div class="stat-label">Aktive medlemmer</div>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-icon">📱</div>
+          <div class="stat-icon">💬</div>
           <div class="stat-content">
             <div class="stat-value">{{ stats.smsConsent }}</div>
             <div class="stat-label">SMS samtykke</div>
@@ -60,9 +60,9 @@
         </div>
 
         <div class="stat-card">
-          <div class="stat-icon">💬</div>
+          <div class="stat-icon">📤</div>
           <div class="stat-content">
-            <div class="stat-value">{{ stats.totalSMS || 0 }}</div>
+            <div class="stat-value">{{ stats.totalSMS }}</div>
             <div class="stat-label">SMS sendt (totalt)</div>
           </div>
         </div>
@@ -70,7 +70,7 @@
         <div class="stat-card">
           <div class="stat-icon">🎂</div>
           <div class="stat-content">
-            <div class="stat-value">{{ stats.membersOver18 || 0 }}</div>
+            <div class="stat-value">{{ stats.membersOver18 }}</div>
             <div class="stat-label">Medlemmer 18+ år</div>
           </div>
         </div>
@@ -154,7 +154,6 @@ export default {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1.5rem;
-  margin-top: 2rem;
 }
 
 .stat-card {
