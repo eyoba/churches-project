@@ -36,21 +36,6 @@
         </div>
 
         <div class="form-group">
-          <label for="display_order">Display Order</label>
-          <input
-            id="display_order"
-            v-model.number="church.display_order"
-            type="number"
-            placeholder="0"
-            min="0"
-            :disabled="saving"
-          >
-          <small class="form-help">
-            Control the order this church appears on the home page. Lower numbers appear first (0, 1, 2, etc.).
-          </small>
-        </div>
-
-        <div class="form-group">
           <label for="description">Description</label>
           <textarea
             id="description"
@@ -332,7 +317,6 @@ export default {
         email: '',
         website: '',
         logo_url: '',
-        display_order: 0,
         facebook: '',
         background_color: '#3b82f6',
         show_members_link: false
@@ -386,7 +370,6 @@ export default {
             email: response.data.church.email || '',
             website: response.data.church.website || '',
             logo_url: response.data.church.logo_url || '',
-            display_order: response.data.church.display_order || 0,
             facebook: response.data.church.facebook || '',
             background_color: response.data.church.background_color || '#3b82f6',
             show_members_link: response.data.church.show_members_link || false

@@ -308,6 +308,7 @@
             <th>Pastor</th>
             <th>Admins</th>
             <th>Status</th>
+            <th>Display Order</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -321,6 +322,9 @@
               <span :class="['status-badge', church.is_active ? 'active' : 'inactive']">
                 {{ church.is_active ? 'Active' : 'Inactive' }}
               </span>
+            </td>
+            <td class="display-order-cell">
+              {{ church.display_order || 0 }}
             </td>
             <td class="actions-cell">
               <button @click="editChurch(church)" class="btn-small btn-primary">Edit</button>
@@ -391,11 +395,18 @@
             </div>
           </div>
 
-          <div class="form-group">
-            <label>
-              <input type="checkbox" v-model="churchForm.is_active">
-              Active
-            </label>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Display Order</label>
+              <input v-model.number="churchForm.display_order" type="number" min="0" placeholder="0">
+              <small>Lower numbers appear first on the home page (0, 1, 2, etc.)</small>
+            </div>
+            <div class="form-group">
+              <label>
+                <input type="checkbox" v-model="churchForm.is_active">
+                Active
+              </label>
+            </div>
           </div>
 
           <div v-if="error" class="error-message">{{ error }}</div>
@@ -502,6 +513,7 @@ export default {
         logo_url: '',
         website: '',
         service_times: '',
+        display_order: 0,
         is_active: true,
         background_color: '#3b82f6'
       },
@@ -765,13 +777,31 @@ export default {
       try {
         const token = localStorage.getItem('super_admin_token')
         const headers = { Authorization: `Bearer ${token}` }
-        
-        if (this.showEditChurchModal) {
-          await axios.put(`${API_URL}/super-admin/churches/${this.selectedChurch.id}`, this.churchForm, { headers })
-        } else {
-          await axios.post(`${API_URL}/super-admin/churches`, this.churchForm, { headers })
+
+        // Prepare the data payload with correct field mapping
+        const churchData = {
+          name: this.churchForm.name,
+          slug: this.churchForm.slug,
+          address: this.churchForm.address || '',
+          phone: this.churchForm.phone || '',
+          email: this.churchForm.email || '',
+          pastor_name: this.churchForm.pastor_name || '',
+          pastor_title: this.churchForm.pastor_title || '',
+          description: this.churchForm.description || '',
+          logo_url: this.churchForm.logo_url || '',
+          website: this.churchForm.website || '',
+          service_times: this.churchForm.service_times || this.churchForm.sunday_service_time || '',
+          display_order: parseInt(this.churchForm.display_order) || 0,
+          is_active: this.churchForm.is_active !== false,
+          background_color: this.churchForm.background_color || '#3b82f6'
         }
-        
+
+        if (this.showEditChurchModal) {
+          await axios.put(`${API_URL}/super-admin/churches/${this.selectedChurch.id}`, churchData, { headers })
+        } else {
+          await axios.post(`${API_URL}/super-admin/churches`, churchData, { headers })
+        }
+
         this.closeModals()
         this.fetchChurches()
         this.resetChurchForm()
@@ -783,7 +813,7 @@ export default {
       if (!confirm(`Are you sure you want to delete ${church.name}? This cannot be undone.`)) {
         return
       }
-      
+
       try {
         const token = localStorage.getItem('super_admin_token')
         await axios.delete(`${API_URL}/super-admin/churches/${church.id}`, {
@@ -844,7 +874,9 @@ export default {
         logo_url: '',
         website: '',
         service_times: '',
-        is_active: true
+        display_order: 0,
+        is_active: true,
+        background_color: '#3b82f6'
       }
     },
     resetAdminForm() {
@@ -1145,6 +1177,11 @@ code {
 
 .actions-cell {
   white-space: nowrap;
+}
+
+.display-order-cell {
+  width: 100px;
+  text-align: center;
 }
 
 .btn-small {
