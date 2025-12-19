@@ -80,7 +80,12 @@
         Ingen medlemmer funnet med søk "{{ searchQuery }}"
       </div>
 
-      <div v-else class="table-container">
+      <div v-else>
+        <div class="month-heading">
+          <h2>{{ currentMonthName }}</h2>
+        </div>
+
+        <div class="table-container">
         <table class="kontingent-table">
           <thead>
             <tr>
@@ -141,6 +146,7 @@
             <strong class="text-danger">{{ unpaidCount }}</strong>
           </div>
         </div>
+      </div>
       </div>
     </div>
     </div>
@@ -625,6 +631,22 @@ export default {
   color: var(--gray-600);
   font-size: 0.875rem;
   font-weight: 500;
+}
+
+.month-heading {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.month-heading h2 {
+  margin: 0;
+  color: var(--primary-color);
+  font-size: 1.5rem;
+  font-weight: 700;
 }
 
 .loading,
