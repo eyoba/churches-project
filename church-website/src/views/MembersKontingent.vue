@@ -5,6 +5,23 @@
       <router-link to="/members/dashboard" class="btn btn-secondary">Tilbake til dashboard</router-link>
     </div>
 
+    <div class="view-toggle">
+      <button
+        @click="viewMode = 'monthly'"
+        :class="['toggle-btn', { active: viewMode === 'monthly' }]"
+      >
+        Månedsvisning
+      </button>
+      <button
+        @click="viewMode = 'yearly'"
+        :class="['toggle-btn', { active: viewMode === 'yearly' }]"
+      >
+        Årsvisning per medlem
+      </button>
+    </div>
+
+    <!-- Monthly View (Original) -->
+    <div v-if="viewMode === 'monthly'">
     <div class="month-selector">
       <div class="selector-group">
         <label for="month-select">Måned:</label>
@@ -32,6 +49,20 @@
       <button @click="loadKontingentData" class="btn btn-primary" :disabled="isLoading">
         {{ isLoading ? 'Laster...' : 'Vis' }}
       </button>
+    </div>
+
+    <div v-if="!isLoading && members.length > 0" class="search-box">
+      <label for="search-input">Søk:</label>
+      <input
+        id="search-input"
+        type="text"
+        v-model="searchQuery"
+        placeholder="Søk etter navn eller telefon..."
+        class="search-input"
+      />
+      <span v-if="searchQuery" class="search-results">
+        Viser {{ filteredMembers.length }} av {{ members.length }} medlemmer
+      </span>
     </div>
 
     <div v-if="isLoading" class="loading">Laster kontingentdata...</div>
@@ -63,7 +94,11 @@
         </div>
       </div>
 
-      <div class="table-container">
+      <div v-if="filteredMembers.length === 0" class="no-data">
+        Ingen medlemmer funnet med søk "{{ searchQuery }}"
+      </div>
+
+      <div v-else class="table-container">
         <table class="kontingent-table">
           <thead>
             <tr>
@@ -74,7 +109,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="member in members" :key="member.member_id">
+            <tr v-for="member in filteredMembers" :key="member.member_id">
               <td class="member-name">{{ member.full_name }}</td>
               <td>{{ member.phone_number || 'N/A' }}</td>
               <td>
@@ -108,6 +143,77 @@
         </table>
       </div>
     </div>
+    </div>
+    <!-- End Monthly View -->
+
+    <!-- Yearly View per Member -->
+    <div v-if="viewMode === 'yearly'">
+      <div class="yearly-selector">
+        <div class="selector-group">
+          <label for="yearly-year-select">År:</label>
+          <select id="yearly-year-select" v-model="yearlySelectedYear" @change="loadYearlyData">
+            <option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option>
+          </select>
+        </div>
+        <div class="selector-group" style="flex: 2;">
+          <label for="member-select">Velg medlem:</label>
+          <select id="member-select" v-model="selectedMemberId" @change="loadMemberYearlyPayments">
+            <option value="">-- Velg et medlem --</option>
+            <option v-for="member in allMembers18Plus" :key="member.id" :value="member.id">
+              {{ member.full_name }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <div v-if="isLoadingYearly" class="loading">Laster...</div>
+
+      <div v-else-if="!selectedMemberId" class="no-data">
+        Velg et medlem for å se årsvisning
+      </div>
+
+      <div v-else-if="selectedMemberData" class="yearly-view-container">
+        <div class="member-info-card">
+          <h3>{{ selectedMemberData.full_name }}</h3>
+          <p v-if="selectedMemberData.phone_number">📱 {{ selectedMemberData.phone_number }}</p>
+        </div>
+
+        <div class="months-grid">
+          <div
+            v-for="(monthData, index) in monthsData"
+            :key="index"
+            class="month-card"
+          >
+            <div class="month-name">{{ monthData.name }}</div>
+            <div class="month-status">
+              <span :class="['badge', monthData.paid ? 'badge-success' : 'badge-warning']">
+                {{ monthData.paid ? 'Betalt' : 'Ikke betalt' }}
+              </span>
+              <span v-if="monthData.payment_date" class="payment-date-small">
+                {{ formatDateShort(monthData.payment_date) }}
+              </span>
+            </div>
+            <button
+              v-if="!monthData.paid"
+              @click="toggleMonthPayment(monthData, true)"
+              class="btn btn-sm btn-success month-btn"
+              :disabled="updatingMonth === monthData.month"
+            >
+              {{ updatingMonth === monthData.month ? '...' : 'Betalt' }}
+            </button>
+            <button
+              v-else
+              @click="toggleMonthPayment(monthData, false)"
+              class="btn btn-sm btn-warning month-btn"
+              :disabled="updatingMonth === monthData.month"
+            >
+              {{ updatingMonth === monthData.month ? '...' : 'Ikke betalt' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- End Yearly View -->
   </div>
 </template>
 
@@ -122,12 +228,26 @@ export default {
     const currentMonth = String(now.getMonth() + 1).padStart(2, '0')
 
     return {
+      // Monthly view data
       members: [],
       selectedMonth: currentMonth,
       selectedYear: currentYear.toString(),
       isLoading: false,
       errorMessage: '',
-      updatingMemberId: null
+      updatingMemberId: null,
+      searchQuery: '',
+
+      // View mode toggle
+      viewMode: 'monthly', // 'monthly' or 'yearly'
+
+      // Yearly view data
+      yearlySelectedYear: currentYear.toString(),
+      selectedMemberId: '',
+      allMembers18Plus: [],
+      selectedMemberData: null,
+      monthsData: [],
+      isLoadingYearly: false,
+      updatingMonth: null
     }
   },
   computed: {
@@ -148,6 +268,18 @@ export default {
         years.push(year.toString())
       }
       return years.reverse() // Show newest years first
+    },
+    filteredMembers() {
+      if (!this.searchQuery.trim()) {
+        return this.members
+      }
+
+      const query = this.searchQuery.toLowerCase().trim()
+      return this.members.filter(member => {
+        const name = (member.full_name || '').toLowerCase()
+        const phone = (member.phone_number || '').toLowerCase()
+        return name.includes(query) || phone.includes(query)
+      })
     },
     paidCount() {
       return this.members.filter(m => m.paid).length
@@ -263,6 +395,109 @@ export default {
     formatDate(dateStr) {
       if (!dateStr) return ''
       return new Date(dateStr).toLocaleDateString('nb-NO')
+    },
+
+    formatDateShort(dateStr) {
+      if (!dateStr) return ''
+      const date = new Date(dateStr)
+      return `${date.getDate()}/${date.getMonth() + 1}`
+    },
+
+    // Yearly view methods
+    async loadYearlyData() {
+      this.isLoadingYearly = true
+      this.selectedMemberId = ''
+      this.selectedMemberData = null
+
+      try {
+        // Fetch all active members
+        const allMembers = await membersService.getMembers({ active: true })
+
+        // Filter members 18+ based on personnummer
+        this.allMembers18Plus = allMembers
+          .map(member => {
+            const age = this.calculateAge(member.personnummer)
+            return { ...member, age }
+          })
+          .filter(member => member.age >= 18)
+          .sort((a, b) => {
+            const nameA = (a.full_name || '').toLowerCase()
+            const nameB = (b.full_name || '').toLowerCase()
+            return nameA.localeCompare(nameB, 'nb-NO')
+          })
+      } catch (error) {
+        console.error('Error loading members:', error)
+      } finally {
+        this.isLoadingYearly = false
+      }
+    },
+
+    async loadMemberYearlyPayments() {
+      if (!this.selectedMemberId) {
+        this.selectedMemberData = null
+        this.monthsData = []
+        return
+      }
+
+      this.isLoadingYearly = true
+
+      try {
+        // Find selected member
+        this.selectedMemberData = this.allMembers18Plus.find(m => m.id === parseInt(this.selectedMemberId))
+
+        // Fetch payment data for all 12 months of the selected year
+        const monthNames = ['Januar', 'Februar', 'Mars', 'April', 'Mai', 'Juni',
+                            'Juli', 'August', 'September', 'Oktober', 'November', 'Desember']
+
+        const monthsPromises = monthNames.map(async (name, index) => {
+          const monthNum = String(index + 1).padStart(2, '0')
+          const yearMonth = `${this.yearlySelectedYear}-${monthNum}`
+
+          const data = await membersService.getKontingentForMonth(yearMonth)
+          const memberPayment = data.find(m => m.member_id === parseInt(this.selectedMemberId))
+
+          return {
+            name,
+            month: monthNum,
+            yearMonth,
+            paid: memberPayment ? memberPayment.paid : false,
+            payment_date: memberPayment ? memberPayment.payment_date : null
+          }
+        })
+
+        this.monthsData = await Promise.all(monthsPromises)
+      } catch (error) {
+        console.error('Error loading member yearly payments:', error)
+      } finally {
+        this.isLoadingYearly = false
+      }
+    },
+
+    async toggleMonthPayment(monthData, paid) {
+      this.updatingMonth = monthData.month
+
+      try {
+        await membersService.updateKontingentPayment(
+          parseInt(this.selectedMemberId),
+          monthData.yearMonth,
+          paid
+        )
+
+        // Reload member's yearly data
+        await this.loadMemberYearlyPayments()
+      } catch (error) {
+        console.error('Error updating payment:', error)
+      } finally {
+        this.updatingMonth = null
+      }
+    }
+  },
+
+  watch: {
+    viewMode(newMode) {
+      if (newMode === 'yearly' && this.allMembers18Plus.length === 0) {
+        this.loadYearlyData()
+      }
     }
   }
 }
@@ -346,6 +581,50 @@ export default {
 .btn-primary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.search-box {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.search-box label {
+  font-weight: 600;
+  color: var(--gray-700);
+  font-size: 0.875rem;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 250px;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--gray-300);
+  border-radius: 4px;
+  font-size: 1rem;
+  color: var(--gray-900);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+}
+
+.search-input::placeholder {
+  color: var(--gray-400);
+}
+
+.search-results {
+  color: var(--gray-600);
+  font-size: 0.875rem;
+  font-weight: 500;
 }
 
 .loading,
@@ -488,6 +767,126 @@ export default {
   background-color: #e0a800;
 }
 
+/* View Toggle */
+.view-toggle {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 0.5rem;
+}
+
+.toggle-btn {
+  flex: 1;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--gray-700);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toggle-btn:hover {
+  background: var(--gray-50);
+}
+
+.toggle-btn.active {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+/* Yearly View Styles */
+.yearly-selector {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.yearly-view-container {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 2rem;
+}
+
+.member-info-card {
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.member-info-card h3 {
+  margin: 0 0 0.5rem 0;
+  color: var(--gray-900);
+}
+
+.member-info-card p {
+  margin: 0;
+  color: var(--gray-600);
+}
+
+.months-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.month-card {
+  background: white;
+  border: 2px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: all 0.2s;
+}
+
+.month-card:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.month-name {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--gray-900);
+  text-align: center;
+}
+
+.month-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 50px;
+}
+
+.payment-date-small {
+  font-size: 0.75rem;
+  color: var(--gray-600);
+}
+
+.month-btn {
+  width: 100%;
+  padding: 0.5rem;
+  font-size: 0.875rem;
+}
+
 @media (max-width: 768px) {
   .members-kontingent {
     padding: 1rem;
@@ -499,7 +898,16 @@ export default {
     align-items: flex-start;
   }
 
-  .month-selector {
+  .view-toggle {
+    flex-direction: column;
+  }
+
+  .toggle-btn {
+    width: 100%;
+  }
+
+  .month-selector,
+  .yearly-selector {
     flex-direction: column;
     align-items: stretch;
   }
@@ -516,6 +924,21 @@ export default {
     width: 100%;
   }
 
+  .search-box {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .search-input {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .search-results {
+    width: 100%;
+    text-align: center;
+  }
+
   .summary-stats {
     grid-template-columns: 1fr;
   }
@@ -527,6 +950,14 @@ export default {
   .kontingent-table th,
   .kontingent-table td {
     padding: 0.5rem;
+  }
+
+  .months-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .yearly-view-container {
+    padding: 1rem;
   }
 }
 </style>
