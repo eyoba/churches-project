@@ -82,6 +82,12 @@
           <h3>SMS historikk</h3>
           <p>Se tidligere sendte meldinger</p>
         </router-link>
+
+        <router-link v-if="isSuperAdmin" to="/members/admins" class="action-card">
+          <div class="action-icon">👔</div>
+          <h3>Admin Management</h3>
+          <p>Administrer systemadministratorer</p>
+        </router-link>
       </div>
     </div>
   </div>
@@ -102,6 +108,19 @@ export default {
         membersOver18: 0
       },
       isLoading: true
+    }
+  },
+  computed: {
+    isSuperAdmin() {
+      const token = localStorage.getItem('members_admin_token')
+      if (!token) return false
+
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]))
+        return payload.is_super_admin === true
+      } catch (error) {
+        return false
+      }
     }
   },
   async mounted() {

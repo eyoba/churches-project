@@ -100,6 +100,27 @@ export default {
     return response.data
   },
 
+  // Admin Management Operations (Super Admin Only)
+  async getAdmins() {
+    const response = await api.get('/api/admins')
+    return response.data
+  },
+
+  async createAdmin(adminData) {
+    const response = await api.post('/api/admins', adminData)
+    return response.data
+  },
+
+  async updateAdmin(id, adminData) {
+    const response = await api.put(`/api/admins/${id}`, adminData)
+    return response.data
+  },
+
+  async deleteAdmin(id) {
+    const response = await api.delete(`/api/admins/${id}`)
+    return response.data
+  },
+
   // Dashboard Stats
   async getDashboardStats() {
     const members = await this.getMembers()

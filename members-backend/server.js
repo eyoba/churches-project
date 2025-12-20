@@ -3,7 +3,7 @@ const { Pool } = require('pg');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const twilio = require('twilio');
+const { SmsClient } = require('@azure/communication-sms');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
@@ -41,24 +41,25 @@ pool.query('SELECT NOW()', (err, res) => {
   }
 });
 
-// Twilio Client (optional - only if configured)
-let twilioClient = null;
-if (process.env.TWILIO_ACCOUNT_SID &&
-    process.env.TWILIO_AUTH_TOKEN &&
-    process.env.TWILIO_ACCOUNT_SID.startsWith('AC')) {
+// Azure Communication Services SMS Client (optional - only if configured)
+let smsClient = null;
+if (process.env.AZURE_COMMUNICATION_CONNECTION_STRING &&
+    !process.env.AZURE_COMMUNICATION_CONNECTION_STRING.includes('your_connection_string_here')) {
   try {
-    twilioClient = twilio(
-      process.env.TWILIO_ACCOUNT_SID,
-      process.env.TWILIO_AUTH_TOKEN
-    );
-    console.log('✅ Twilio client initialized');
+    smsClient = new SmsClient(process.env.AZURE_COMMUNICATION_CONNECTION_STRING);
+    console.log('✅ Azure Communication Services SMS client initialized');
+    console.log(`📱 Alphanumeric Sender ID: ${process.env.AZURE_SMS_SENDER_ID || 'Not configured'}`);
   } catch (err) {
-    console.log('⚠️  Twilio initialization failed:', err.message);
+    console.log('⚠️  Azure Communication Services initialization failed:', err.message);
     console.log('⚠️  SMS features will be disabled');
   }
 } else {
-  console.log('⚠️  Twilio not configured - SMS features will be disabled');
-  console.log('   To enable SMS: Configure TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER in .env');
+  console.log('⚠️  Azure Communication Services not configured - SMS features will be disabled');
+  console.log('   To enable SMS:');
+  console.log('   1. Create a Communication Services resource in Azure Portal');
+  console.log('   2. Get the connection string from Keys section');
+  console.log('   3. Set AZURE_COMMUNICATION_CONNECTION_STRING in .env');
+  console.log('   4. Register alphanumeric sender ID in Azure Portal');
 }
 
 // JWT Middleware
@@ -77,6 +78,14 @@ function authenticateToken(req, res, next) {
     req.user = user;
     next();
   });
+}
+
+// Super Admin Middleware
+function requireSuperAdmin(req, res, next) {
+  if (!req.user || !req.user.is_super_admin) {
+    return res.status(403).json({ error: 'Super admin access required' });
+  }
+  next();
 }
 
 // Audit Logging Function
@@ -117,7 +126,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, username: user.username },
+      { id: user.id, username: user.username, is_super_admin: user.is_super_admin || false },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
@@ -127,12 +136,191 @@ app.post('/api/auth/login', async (req, res) => {
       user: {
         id: user.id,
         username: user.username,
-        full_name: user.full_name
+        full_name: user.full_name,
+        is_super_admin: user.is_super_admin || false
       }
     });
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ======================
+// ADMIN MANAGEMENT ROUTES (Super Admin Only)
+// ======================
+
+// Get all admins
+app.get('/api/admins', authenticateToken, requireSuperAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, username, full_name, email, is_active, is_super_admin, created_at
+      FROM members_admins
+      ORDER BY created_at DESC
+    `);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Get admins error:', err);
+    res.status(500).json({ error: 'Failed to retrieve admins' });
+  }
+});
+
+// Create new admin
+app.post('/api/admins', authenticateToken, requireSuperAdmin, async (req, res) => {
+  try {
+    const { username, password, full_name, email, is_super_admin } = req.body;
+
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password are required' });
+    }
+
+    // Check for duplicate username
+    const duplicateCheck = await pool.query(
+      'SELECT id FROM members_admins WHERE username = $1',
+      [username]
+    );
+
+    if (duplicateCheck.rows.length > 0) {
+      return res.status(400).json({ error: 'Username already exists' });
+    }
+
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const result = await pool.query(`
+      INSERT INTO members_admins (username, password_hash, full_name, email, is_super_admin)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING id, username, full_name, email, is_active, is_super_admin, created_at
+    `, [username, passwordHash, full_name || null, email || null, is_super_admin || false]);
+
+    await logAudit(
+      req.user.username,
+      'CREATE',
+      'members_admins',
+      result.rows[0].id,
+      null,
+      result.rows[0],
+      req.ip
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('Create admin error:', err);
+    res.status(500).json({ error: 'Failed to create admin' });
+  }
+});
+
+// Update admin
+app.put('/api/admins/:id', authenticateToken, requireSuperAdmin, async (req, res) => {
+  try {
+    const adminId = req.params.id;
+    const { username, full_name, email, is_active, is_super_admin, password } = req.body;
+
+    // Prevent disabling the last super admin
+    if (is_super_admin === false) {
+      const superAdminCount = await pool.query(
+        'SELECT COUNT(*) FROM members_admins WHERE is_super_admin = true AND is_active = true AND id != $1',
+        [adminId]
+      );
+
+      if (parseInt(superAdminCount.rows[0].count) === 0) {
+        return res.status(400).json({ error: 'Cannot remove super admin status from the last super admin' });
+      }
+    }
+
+    // Get old values
+    const oldResult = await pool.query(
+      'SELECT * FROM members_admins WHERE id = $1',
+      [adminId]
+    );
+
+    if (oldResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Admin not found' });
+    }
+
+    let updateQuery = `
+      UPDATE members_admins
+      SET username = $1, full_name = $2, email = $3, is_active = $4, is_super_admin = $5
+    `;
+    let params = [username, full_name || null, email || null, is_active !== undefined ? is_active : true, is_super_admin !== undefined ? is_super_admin : false];
+
+    // Update password if provided
+    if (password && password.trim().length > 0) {
+      const passwordHash = await bcrypt.hash(password, 10);
+      updateQuery += `, password_hash = $${params.length + 1}`;
+      params.push(passwordHash);
+    }
+
+    updateQuery += ` WHERE id = $${params.length + 1} RETURNING id, username, full_name, email, is_active, is_super_admin, created_at`;
+    params.push(adminId);
+
+    const result = await pool.query(updateQuery, params);
+
+    await logAudit(
+      req.user.username,
+      'UPDATE',
+      'members_admins',
+      adminId,
+      oldResult.rows[0],
+      result.rows[0],
+      req.ip
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Update admin error:', err);
+    res.status(500).json({ error: 'Failed to update admin' });
+  }
+});
+
+// Delete admin (soft delete)
+app.delete('/api/admins/:id', authenticateToken, requireSuperAdmin, async (req, res) => {
+  try {
+    const adminId = req.params.id;
+
+    // Prevent deleting yourself
+    if (parseInt(adminId) === req.user.id) {
+      return res.status(400).json({ error: 'Cannot delete your own admin account' });
+    }
+
+    // Prevent deleting the last super admin
+    const admin = await pool.query(
+      'SELECT is_super_admin FROM members_admins WHERE id = $1',
+      [adminId]
+    );
+
+    if (admin.rows.length > 0 && admin.rows[0].is_super_admin) {
+      const superAdminCount = await pool.query(
+        'SELECT COUNT(*) FROM members_admins WHERE is_super_admin = true AND is_active = true AND id != $1',
+        [adminId]
+      );
+
+      if (parseInt(superAdminCount.rows[0].count) === 0) {
+        return res.status(400).json({ error: 'Cannot delete the last super admin' });
+      }
+    }
+
+    await pool.query(`
+      UPDATE members_admins
+      SET is_active = false
+      WHERE id = $1
+    `, [adminId]);
+
+    await logAudit(
+      req.user.username,
+      'DELETE',
+      'members_admins',
+      adminId,
+      null,
+      { is_active: false },
+      req.ip
+    );
+
+    res.json({ message: 'Admin deleted successfully' });
+  } catch (err) {
+    console.error('Delete admin error:', err);
+    res.status(500).json({ error: 'Failed to delete admin' });
   }
 });
 
@@ -360,7 +548,7 @@ app.post('/api/sms/send', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Message is required' });
     }
 
-    if (!twilioClient) {
+    if (!smsClient) {
       return res.status(503).json({ error: 'SMS service not configured' });
     }
 
@@ -383,63 +571,44 @@ app.post('/api/sms/send', authenticateToken, async (req, res) => {
     }
 
     // Create SMS log entry
+    const costPerMessage = parseFloat(process.env.SMS_COST_PER_MESSAGE) || 0.16;
     const logResult = await pool.query(`
       INSERT INTO sms_logs (message, recipient_count, sent_by, cost_estimate)
       VALUES ($1, $2, $3, $4)
       RETURNING id
-    `, [message, recipients.length, req.user.username, recipients.length * 0.16]);
+    `, [message, recipients.length, req.user.username, recipients.length * costPerMessage]);
 
     const smsLogId = logResult.rows[0].id;
 
-    // Send SMS to each recipient with alphanumeric sender ID
+    // Send SMS to each recipient using Azure Communication Services
     const sendPromises = recipients.map(async (recipient) => {
       try {
-        // Try sending with alphanumeric sender ID first (if configured)
-        let twilioMessage;
-        const senderID = process.env.SMS_SENDER_ID;
+        // Use alphanumeric sender ID if configured, otherwise use default
+        const senderID = process.env.AZURE_SMS_SENDER_ID || 'SMS';
 
-        try {
-          const fromNumber = senderID || process.env.TWILIO_PHONE_NUMBER;
+        // Send SMS using Azure Communication Services
+        const sendResults = await smsClient.send({
+          from: senderID,
+          to: [recipient.phone_number],
+          message: message
+        });
 
-          twilioMessage = await twilioClient.messages.create({
-            body: message,
-            from: fromNumber,
-            to: recipient.phone_number
-          });
+        const result = sendResults[0];
 
-          if (senderID) {
-            console.log(`✅ Sendt med alphanumeric sender ID "${senderID}" til: ${recipient.phone_number}`);
-          } else {
-            console.log(`✅ Sendt med telefonnummer ${fromNumber} til: ${recipient.phone_number}`);
-          }
+        if (result.successful) {
+          console.log(`✅ SMS sendt med Azure (Sender: "${senderID}") til: ${recipient.phone_number}`);
+          console.log(`   Message ID: ${result.messageId}`);
 
-        } catch (alphaError) {
-          // If alphanumeric fails (trial account, not supported, etc), fallback to phone number
-          if (alphaError.code === 21612 || alphaError.code === 21606 ||
-              alphaError.message?.includes('Alphanumeric Sender ID') ||
-              alphaError.message?.includes('trial account')) {
-            console.log(`⚠️ Alphanumeric ikke støttet for ${recipient.phone_number}, bruker fallback-nummer`);
-            console.log(`   Grunn: ${alphaError.message}`);
+          // Log successful recipient
+          await pool.query(`
+            INSERT INTO sms_recipients (sms_log_id, member_id, phone_number, status, twilio_sid)
+            VALUES ($1, $2, $3, $4, $5)
+          `, [smsLogId, recipient.id, recipient.phone_number, 'sent', result.messageId]);
 
-            twilioMessage = await twilioClient.messages.create({
-              body: message,
-              from: process.env.TWILIO_PHONE_NUMBER,  // Fallback til US-nummer
-              to: recipient.phone_number
-            });
-
-            console.log(`✅ Sendt med fallback-nummer til: ${recipient.phone_number}`);
-          } else {
-            throw alphaError;  // Other errors should be caught by outer catch
-          }
+          return { success: true, recipient: recipient.full_name, messageId: result.messageId };
+        } else {
+          throw new Error(result.errorMessage || 'Unknown error');
         }
-
-        // Log recipient
-        await pool.query(`
-          INSERT INTO sms_recipients (sms_log_id, member_id, phone_number, status, twilio_sid)
-          VALUES ($1, $2, $3, $4, $5)
-        `, [smsLogId, recipient.id, recipient.phone_number, 'sent', twilioMessage.sid]);
-
-        return { success: true, recipient: recipient.full_name };
       } catch (err) {
         console.error(`❌ SMS send error for ${recipient.phone_number}:`, err.message);
 
@@ -601,7 +770,7 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
     service: 'Members Management API',
-    twilio: twilioClient ? 'enabled' : 'disabled'
+    sms: smsClient ? 'enabled (Azure Communication Services)' : 'disabled'
   });
 });
 

@@ -123,6 +123,12 @@ const routes = [
         name: 'MembersKontingent',
         component: () => import('./views/MembersKontingent.vue'),
         meta: { requiresMembersAuth: true }
+      },
+      {
+        path: 'admins',
+        name: 'AdminManagement',
+        component: () => import('./views/AdminManagement.vue'),
+        meta: { requiresMembersAuth: true }
       }
     ]
   }
