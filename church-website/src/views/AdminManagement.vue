@@ -593,4 +593,130 @@ tbody tr:hover {
   font-size: 1.25rem;
   font-weight: bold;
 }
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .admin-management {
+    padding: 1rem;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .header h1 {
+    font-size: 1.5rem;
+  }
+
+  .header-actions {
+    width: 100%;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .header-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Hide table header on mobile */
+  .admins-table table thead {
+    display: none;
+  }
+
+  /* Convert table rows to cards on mobile */
+  .admins-table table,
+  .admins-table tbody,
+  .admins-table tr,
+  .admins-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .admins-table tr {
+    margin-bottom: 1rem;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1rem;
+    background: white;
+  }
+
+  .admins-table td {
+    padding: 0.5rem 0;
+    border-bottom: none;
+    text-align: left;
+    position: relative;
+    padding-left: 45%;
+  }
+
+  .admins-table td::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 0;
+    font-weight: 600;
+    color: #495057;
+  }
+
+  .admins-table td:first-child::before {
+    content: 'Username: ';
+  }
+
+  .admins-table td:nth-child(2)::before {
+    content: 'Full Name: ';
+  }
+
+  .admins-table td:nth-child(3)::before {
+    content: 'Email: ';
+  }
+
+  .admins-table td:nth-child(4)::before {
+    content: 'Super Admin: ';
+  }
+
+  .admins-table td:nth-child(5)::before {
+    content: 'Status: ';
+  }
+
+  .admins-table td:nth-child(6)::before {
+    content: 'Actions: ';
+  }
+
+  .admins-table .actions {
+    padding-left: 45%;
+  }
+
+  /* Modal adjustments for mobile */
+  .modal-content {
+    min-width: auto;
+    width: 95%;
+    padding: 1.5rem;
+  }
+
+  .delete-modal {
+    min-width: auto;
+    width: 95%;
+  }
+
+  .modal-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger {
+    padding: 0.65rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .modal-actions button {
+    width: 100%;
+  }
+}
 </style>
