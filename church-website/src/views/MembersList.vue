@@ -13,7 +13,7 @@
         type="text"
         v-model="searchQuery"
         @input="handleSearch"
-        placeholder="Søk etter navn, telefon eller personnummer..."
+        placeholder="Søk etter navn, telefon, medlemsnummer eller personnummer..."
         class="search-input"
       />
       <select v-model="activeFilter" @change="loadMembers" class="filter-select">
@@ -37,6 +37,7 @@
       <table class="members-table">
         <thead>
           <tr>
+            <th>Medlemsnummer</th>
             <th>Navn</th>
             <th>Telefon</th>
             <th>
@@ -57,6 +58,7 @@
         </thead>
         <tbody>
           <tr v-for="member in filteredMembers" :key="member.id">
+            <td class="member-number">{{ member.member_number || '-' }}</td>
             <td class="member-name">{{ member.full_name }}</td>
             <td>{{ member.phone_number }}</td>
             <td class="personnummer">
@@ -158,7 +160,8 @@ export default {
       this.filteredMembers = this.members.filter(member =>
         member.full_name.toLowerCase().includes(query) ||
         member.phone_number.includes(query) ||
-        member.personnummer?.includes(query)
+        member.personnummer?.includes(query) ||
+        member.member_number?.toLowerCase().includes(query)
       )
     },
 
@@ -306,6 +309,12 @@ export default {
 .personnummer {
   font-family: monospace;
   font-size: 0.9rem;
+}
+
+.member-number {
+  font-weight: 600;
+  color: var(--primary-color);
+  font-family: monospace;
 }
 
 .badge {

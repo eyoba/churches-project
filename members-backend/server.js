@@ -381,18 +381,23 @@ app.get('/api/members/:id', authenticateToken, async (req, res) => {
 // Create member
 app.post('/api/members', authenticateToken, async (req, res) => {
   try {
+    console.log('=== CREATE MEMBER REQUEST ===');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+
     const {
-      full_name, phone_number, email, personnummer,
+      full_name, phone_number, email, personnummer, member_number,
       address, postal_code, city, member_since,
       baptized, baptism_date, sms_consent, notes
     } = req.body;
+
+    console.log('Extracted member_number:', member_number);
 
     // Validate personnummer (11 digits)
     if (!/^\d{11}$/.test(personnummer)) {
       return res.status(400).json({ error: 'Personnummer must be 11 digits' });
     }
 
-    // Check for duplicate
+    // Check for duplicate phone number
     const duplicateCheck = await pool.query(
       'SELECT id FROM members WHERE phone_number = $1',
       [phone_number]
@@ -402,17 +407,29 @@ app.post('/api/members', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Member with this phone number already exists' });
     }
 
+    // Check for duplicate member_number if provided
+    if (member_number) {
+      const memberNumberCheck = await pool.query(
+        'SELECT id FROM members WHERE member_number = $1',
+        [member_number]
+      );
+
+      if (memberNumberCheck.rows.length > 0) {
+        return res.status(400).json({ error: 'Member number already exists' });
+      }
+    }
+
     const result = await pool.query(`
       INSERT INTO members (
-        full_name, phone_number, email, personnummer,
+        full_name, phone_number, email, personnummer, member_number,
         address, postal_code, city, member_since,
         baptized, baptism_date, sms_consent, notes,
         created_by, updated_by
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14)
       RETURNING id
     `, [
-      full_name, phone_number, email || null, personnummer,
+      full_name, phone_number, email || null, personnummer, member_number || null,
       address || null, postal_code || null, city || null, member_since || null,
       baptized || false, baptism_date || null, sms_consent !== undefined ? sms_consent : true,
       notes || null, req.user.username
@@ -453,10 +470,22 @@ app.put('/api/members/:id', authenticateToken, async (req, res) => {
     }
 
     const {
-      full_name, phone_number, email, personnummer,
+      full_name, phone_number, email, personnummer, member_number,
       address, postal_code, city, member_since,
       baptized, baptism_date, sms_consent, is_active, notes
     } = req.body;
+
+    // Check for duplicate member_number if provided and different from current
+    if (member_number && member_number !== oldResult.rows[0].member_number) {
+      const memberNumberCheck = await pool.query(
+        'SELECT id FROM members WHERE member_number = $1 AND id != $2',
+        [member_number, memberId]
+      );
+
+      if (memberNumberCheck.rows.length > 0) {
+        return res.status(400).json({ error: 'Member number already exists' });
+      }
+    }
 
     await pool.query(`
       UPDATE members SET
@@ -464,20 +493,21 @@ app.put('/api/members/:id', authenticateToken, async (req, res) => {
         phone_number = $2,
         email = $3,
         personnummer = $4,
-        address = $5,
-        postal_code = $6,
-        city = $7,
-        member_since = $8,
-        baptized = $9,
-        baptism_date = $10,
-        sms_consent = $11,
-        is_active = $12,
-        notes = $13,
-        updated_by = $14,
+        member_number = $5,
+        address = $6,
+        postal_code = $7,
+        city = $8,
+        member_since = $9,
+        baptized = $10,
+        baptism_date = $11,
+        sms_consent = $12,
+        is_active = $13,
+        notes = $14,
+        updated_by = $15,
         updated_at = NOW()
-      WHERE id = $15
+      WHERE id = $16
     `, [
-      full_name, phone_number, email || null, personnummer,
+      full_name, phone_number, email || null, personnummer, member_number || null,
       address || null, postal_code || null, city || null, member_since || null,
       baptized || false, baptism_date || null, sms_consent !== undefined ? sms_consent : true,
       is_active !== undefined ? is_active : true, notes || null,

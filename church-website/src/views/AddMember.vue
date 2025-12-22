@@ -59,6 +59,19 @@
             />
             <small class="form-hint">Sensitiv informasjon - behandles konfidensielt</small>
           </div>
+
+          <div class="form-group">
+            <label for="member_number">Medlemsnummer</label>
+            <input
+              type="text"
+              id="member_number"
+              v-model="formData.member_number"
+              placeholder="Unik identifikasjon (valgfritt)"
+              maxlength="50"
+              :disabled="isSubmitting"
+            />
+            <small class="form-hint">Unikt identifikasjonsnummer for medlemmet</small>
+          </div>
         </div>
 
         <div class="form-section">
@@ -188,6 +201,7 @@ export default {
         phone_number: '',
         email: '',
         personnummer: '',
+        member_number: '',
         address: '',
         postal_code: '',
         city: '',

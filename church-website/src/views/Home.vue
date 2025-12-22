@@ -5,7 +5,7 @@
       <div class="container">
         <div class="hero-content">
           <div class="hero-logo">
-            <img v-if="siteLogo" :src="siteLogo" alt="Logo" class="site-logo">
+            <img v-if="siteLogo" :src="siteLogo" alt="Logo" class="site-logo" loading="eager">
             <div v-else class="site-logo-placeholder">⛪</div>
           </div>
           <div class="hero-text">
@@ -49,7 +49,7 @@
       <div v-else>
         <div class="grid grid-2">
           <div v-for="church in churches" :key="church.id" class="card church-card">
-            <img v-if="church.logo_url" :src="church.logo_url" :alt="church.name" class="church-logo">
+            <img v-if="church.logo_url" :src="church.logo_url" :alt="church.name" class="church-logo" loading="lazy">
             <div class="church-icon" v-else>⛪</div>
 
             <h3>{{ church.name }}</h3>
