@@ -232,7 +232,7 @@ export default {
       return `rgb(${darken(r)}, ${darken(g)}, ${darken(b)})`
     },
     loadGeezCalendar() {
-      // Load CSS from local file
+      // Load CSS from local file for Geez calendar
       const cssLink = document.createElement('link')
       cssLink.rel = 'stylesheet'
       cssLink.href = '/geez_calendar.css'
