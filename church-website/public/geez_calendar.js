@@ -1166,7 +1166,7 @@ function ethDayToGregDay ( ethYear, ethMonth, ethDay ){
 	
 	return days;
 }
-nfunction ethDayToGregMonth ( ethYear, ethMonth, ethDay ){
+function ethDayToGregMonth ( ethYear, ethMonth, ethDay ){
 	var gregMonthIndex = 0;
 	var days = ethDaysFromNewYear ( ethMonth, ethDay );
 	var dayFound = false;
