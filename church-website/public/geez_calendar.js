@@ -680,80 +680,80 @@ var AMETE_FEDA = new Number(5500);
 				if ( ((lideta == dayIndex) && (serkeMealt <= maxDays)) || ((serkeMealt > 1) && (serkeMealt <= maxDays)) ){
 					if (HighL(month, serkeMealt)){
 						strCalTable = strCalTable + "bgColor=\"#FFFF00\" > <a class=\"sundayactive\" href=\"#\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
-						desc= desc + serkeMealt + " - " + HighL(month, serkeMealt) + "<br>";
+						desc= desc + geezNum[serkeMealt] + " - " + HighL(month, serkeMealt) + "<br>";
 					}
 					else if ( month == neneweWor( year ) && serkeMealt == neneweKen( year ) ){
 						
 						strCalTable = strCalTable + "bgColor=\"#FFFF00\" > <a title = \"ጾመ ነነዌ\" href=\"/ጾመ-ነነዌ/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
-						desc= desc + serkeMealt + " - ጾመ ነነዌ<br>";
+						desc= desc + geezNum[serkeMealt] + " - ጾመ ነነዌ<br>";
 					}
 					else if ( month == abiyTsomeWor( year ) && serkeMealt == abiyTsomeKen( year ) ){
 						strCalTable = strCalTable + "bgColor=\"#FFFF00\" > <a title = \"ዓብይ ጾም\" href=\"/ዓብይ-ጾም/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
-						desc= desc + serkeMealt + " - ዓብይ ጾም<br>";
+						desc= desc + geezNum[serkeMealt] + " - ዓብይ ጾም<br>";
 					}
 					else if ( month == debreZeitWor( year ) && serkeMealt == debreZeitKen( year ) ){
 						strCalTable = strCalTable + "bgColor=\"#FFFF00\" > <a title = \"ደብረ ዘይት\" href=\"/ደብረ-ዘይት/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
-						desc= desc + serkeMealt + " - ደብረ ዘይት<br>";
+						desc= desc + geezNum[serkeMealt] + " - ደብረ ዘይት<br>";
 					}
 					else if ( month == hosaenaWor( year ) && serkeMealt == hosaenaKen( year ) ){
 						strCalTable = strCalTable + "bgColor=\"#FFFF00\" > <a title = \"ሆሳዕና\" href=\"/ሆሳዕና/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
-						desc= desc + serkeMealt + " - ሆሳዕና<br>";
+						desc= desc + geezNum[serkeMealt] + " - ሆሳዕና<br>";
 					}
 					else if ( month == sikletWor( year ) && serkeMealt == sikletKen( year ) ){
 						strCalTable = strCalTable + "bgColor=\"#FFFF00\" > <a title = \"ስቅለት\" href=\"/ስቅለት/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
-						desc= desc + serkeMealt + " - ስቅለት<br>";
+						desc= desc + geezNum[serkeMealt] + " - ስቅለት<br>";
 					}
 					else if ( month == tinsaeWor( year ) && serkeMealt == tinsaeKen( year ) ){
 						strCalTable = strCalTable + "bgColor=\"#FFFF00\" > <a title = \"ትንሳኤ\" href=\"/ትንሳኤ/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
-						desc= desc + serkeMealt + " - ትንሳኤ<br>";
+						desc= desc + geezNum[serkeMealt] + " - ትንሳኤ<br>";
 					}
 					else if ( month == rekebeKahinatWor( year ) && serkeMealt == rekebeKahinatKen( year ) ){
 						strCalTable = strCalTable + "bgColor=\"#FFFF00\" > <a title = \"ርክበ ካህናት\" href=\"/ርክበ-ካህናት/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
-						desc= desc + serkeMealt + " - ርክበ ካህናት<br>";
+						desc= desc + geezNum[serkeMealt] + " - ርክበ ካህናት<br>";
 					}
 					else if ( month == ergetWor( year ) && serkeMealt == ergetKen( year ) ){
 						strCalTable = strCalTable + "bgColor=\"#FFFF00\" > <a  title = \"ዕርገት\" href=\"/ዕርገት/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
-						desc= desc + serkeMealt + " - ዕርገት<br>";
+						desc= desc + geezNum[serkeMealt] + " - ዕርገት<br>";
 					}
 					else if ( month == peraklitosWor( year ) && serkeMealt == peraklitosKen( year ) ){
 						strCalTable = strCalTable + "bgColor=\"#FFFF00\" > <a title = \"ጴራቅሊጦስ\" href=\"/ጴራቅሊጦስ/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
-						desc= desc + serkeMealt + " - ጴራቅሊጦስ<br>";
+						desc= desc + geezNum[serkeMealt] + " - ጴራቅሊጦስ<br>";
 					}
 					else if ( month == tsomeHawariatWor( year ) && serkeMealt == tsomeHawariatKen( year ) ){
 						strCalTable = strCalTable + "bgColor=\"#FFFF00\" > <a title = \"ጾመ ሓዋርያት\" href=\"/ጾመ-ሓዋርያት/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
-						desc= desc + serkeMealt + " - ጾመ ሓዋርያት<br>";
+						desc= desc + geezNum[serkeMealt] + " - ጾመ ሓዋርያት<br>";
 					}
 					else if ( month == tsomeDihenetWor( year ) && serkeMealt == tsomeDihenetKen( year ) ){
 						strCalTable = strCalTable + "bgColor=\"#FFFF00\" > <a title = \"ጾመ ድህነት\" href=\"/ጾመ-ድህነት/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
-						desc= desc + serkeMealt + " - ጾመ ድህነት<br>";
+						desc= desc + geezNum[serkeMealt] + " - ጾመ ድህነት<br>";
 					}
 					else if ( month == enqutatashWor( year ) && serkeMealt == enqutatashKen( year ) ){
 						strCalTable = strCalTable + "bgColor=\"#FFFF00\" > <a title = \"ቅዱስ ዩሐንስ\" href=\"/ቅዱስ-ዩሐንስ/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
-						desc= desc + serkeMealt + " - ቅዱስ ዩሐንስ<br>";
+						desc= desc + geezNum[serkeMealt] + " - ቅዱስ ዩሐንስ<br>";
 					}
 					else if ( month == meskelWor( year ) && serkeMealt == meskelKen( year ) ){
 						strCalTable = strCalTable + "bgColor=\"#FFFF00\" > <a title = \"መስቀል\" href=\"/መስቀል/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font face=\"verdana\" size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
-						 desc= desc + serkeMealt + " - መስቀል<br>";
+						 desc= desc + geezNum[serkeMealt] + " - መስቀል<br>";
 					}
 					else if ( month == genaWor( year ) && serkeMealt == genaKen( year ) ){
 						strCalTable = strCalTable + "bgColor=\"#FFFF00\" > <a title = \"ልደት\" href=\"/ልደት/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
-						desc= desc + serkeMealt + " - ልደት<br>";
+						desc= desc + geezNum[serkeMealt] + " - ልደት<br>";
 					}
 					else if ( month == timketWor( year ) && serkeMealt == timketKen( year ) ){
 						strCalTable = strCalTable + "bgColor=\"#FFFF00\" > <a title = \"ጥምቀት\" href=\"/ጥምቀት/\">" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
-						desc= desc + serkeMealt + " - ጥምቀት<br>";
+						desc= desc + geezNum[serkeMealt] + " - ጥምቀት<br>";
 					}
 					else if ( month == tsomeFilsetaWor( year ) && serkeMealt == tsomeFilsetaKen( year ) ){
 						strCalTable = strCalTable + "bgColor=\"#FFFF00\" > <a title = \"ጾመ ፍልሰታ\" href=\"/ጾመ-ፍልሰታ/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
-						desc= desc + serkeMealt + " - ጾመ ፍልሰታ<br>";
+						desc= desc + geezNum[serkeMealt] + " - ጾመ ፍልሰታ<br>";
 					}
 					else if ( month == filsetaWor( year ) && serkeMealt == filsetaKen( year ) ){
 						strCalTable = strCalTable + "bgColor=\"#FFFF00\" > <a title = \"ናይ ኣዴና ቅ.ድ ዕርገት\" href=\"/ናይ- ኣዴና-ዕርገት/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
-						desc= desc + serkeMealt + " - ናይ ኣዴና ቅ.ድ ዕርገት<br>";
+						desc= desc + geezNum[serkeMealt] + " - ናይ ኣዴና ቅ.ድ ዕርገት<br>";
 					}
 					else if ( month == debreTaborWor( year ) && serkeMealt == debreTaborKen( year ) ){
 						strCalTable = strCalTable + "bgColor=\"#FFFF00\" > <a title = \"ደብረ ታቦር\" href=\"/ደብረ-ታቦር/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
-						desc= desc + serkeMealt + " - ደብረ ታቦር<br>";
+						desc= desc + geezNum[serkeMealt] + " - ደብረ ታቦር<br>";
 					}
 					else if (today.getDate() == ethDayToGregDay ( year, month, serkeMealt ) ){
 						strCalTable = strCalTable + "bgColor='#CFCFCF' > <a class=\"sundayactive\"  href=\"#\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>"; 
@@ -918,97 +918,97 @@ var AMETE_FEDA = new Number(5500);
 					if ( HighL(month, serkeMealt)){
 						document.getElementById("td" + week +"_"+ dayIndex).innerHTML = "<a class=\"sundayactive\" href=\"#\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
 						document.getElementById("td" + week +"_"+ dayIndex).bgColor ='#FFFF00';
-						desc= desc + serkeMealt + " - " + HighL(month, serkeMealt) + "<br>";
+						desc= desc + geezNum[serkeMealt] + " - " + HighL(month, serkeMealt) + "<br>";
 					}
 					else if ( month == neneweWor( year ) && serkeMealt == neneweKen( year ) ){
 						document.getElementById("td" + week +"_"+ dayIndex).innerHTML ="<a title = \"ጾመ ነነዌ\" href=\"/ጾመ-ነነዌ/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
 						document.getElementById("td" + week +"_"+ dayIndex).bgColor ="#FFFF00";
-						desc= desc + serkeMealt + " - ጾመ ነነዌ<br>";
+						desc= desc + geezNum[serkeMealt] + " - ጾመ ነነዌ<br>";
 					}
 					else if ( month == abiyTsomeWor( year ) && serkeMealt == abiyTsomeKen( year ) ){
 						document.getElementById("td" + week +"_"+ dayIndex).innerHTML ="<a title = \"ዓብይ ጾም\" href=\"/ዓብይ-ጾም/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
 						document.getElementById("td" + week +"_"+ dayIndex).bgColor ="#FFFF00";
-						desc= desc + serkeMealt + " - ዓብይ ጾም<br>";
+						desc= desc + geezNum[serkeMealt] + " - ዓብይ ጾም<br>";
 					}
 					else if ( month == debreZeitWor( year ) && serkeMealt == debreZeitKen( year ) ){
 						document.getElementById("td" + week +"_"+ dayIndex).innerHTML ="<a title = \"ደብረ ዘይት\" href=\"/ደብረ-ዘይት/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
 						document.getElementById("td" + week +"_"+ dayIndex).bgColor ="#FFFF00";
-						desc= desc + serkeMealt + " - ደብረ ዘይት<br>";
+						desc= desc + geezNum[serkeMealt] + " - ደብረ ዘይት<br>";
 					}
 					else if ( month == hosaenaWor( year ) && serkeMealt == hosaenaKen( year ) ){
 						document.getElementById("td" + week +"_"+ dayIndex).innerHTML ="<a title = \"ሆሳዕና\" href=\"/ሆሳዕና/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
 						document.getElementById("td" + week +"_"+ dayIndex).bgColor ="#FFFF00";
-						desc= desc + serkeMealt + " - ሆሳዕና<br>";
+						desc= desc + geezNum[serkeMealt] + " - ሆሳዕና<br>";
 					}
 					else if ( month == sikletWor( year ) && serkeMealt == sikletKen( year ) ){
 						document.getElementById("td" + week +"_"+ dayIndex).innerHTML ="<a title = \"ስቅለት\" href=\"/ስቅለት/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
 						document.getElementById("td" + week +"_"+ dayIndex).bgColor ="#FFFF00";
-						desc= desc + serkeMealt + " - ስቅለት<br>";
+						desc= desc + geezNum[serkeMealt] + " - ስቅለት<br>";
 					}
 					else if ( month == tinsaeWor( year ) && serkeMealt == tinsaeKen( year ) ){
 						document.getElementById("td" + week +"_"+ dayIndex).innerHTML ="<a title = \"ትንሳኤ\" href=\"/ትንሳኤ/\" >" + "<font  size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
 						document.getElementById("td" + week +"_"+ dayIndex).bgColor ="#FFFF00";
-						desc= desc + serkeMealt + " - ትንሳኤ<br>";
+						desc= desc + geezNum[serkeMealt] + " - ትንሳኤ<br>";
 					}
 					else if ( month == rekebeKahinatWor( year ) && serkeMealt == rekebeKahinatKen( year ) ){
 						document.getElementById("td" + week +"_"+ dayIndex).innerHTML ="<a title = \"ርክበ ካህናት\" href=\"/ርክበ-ካህናት/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
 						document.getElementById("td" + week +"_"+ dayIndex).bgColor ="#FFFF00";
-						desc= desc + serkeMealt + " - ርክበ ካህናት<br>";
+						desc= desc + geezNum[serkeMealt] + " - ርክበ ካህናት<br>";
 					}
 					else if ( month == ergetWor( year ) && serkeMealt == ergetKen( year ) ){
 						document.getElementById("td" + week +"_"+ dayIndex).innerHTML ="<a title = \"ዕርገት\" href=\"/ዕርገት/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
 						document.getElementById("td" + week +"_"+ dayIndex).bgColor ="#FFFF00";
-						desc= desc + serkeMealt + " - ዕርገት<br>";
+						desc= desc + geezNum[serkeMealt] + " - ዕርገት<br>";
 					}
 					else if ( month == peraklitosWor( year ) && serkeMealt == peraklitosKen( year ) ){
 						document.getElementById("td" + week +"_"+ dayIndex).innerHTML ="<a title = \"ጴራቅሊጦስ\" href=\"/ጴራቅሊጦስ/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
 						document.getElementById("td" + week +"_"+ dayIndex).bgColor ="#FFFF00";
-						desc= desc + serkeMealt + " - ጴራቅሊጦስ<br>";
+						desc= desc + geezNum[serkeMealt] + " - ጴራቅሊጦስ<br>";
 					}
 					else if ( month == tsomeHawariatWor( year ) && serkeMealt == tsomeHawariatKen( year ) ){
 						document.getElementById("td" + week +"_"+ dayIndex).innerHTML ="<a title = \"ጾመ ሓዋርያት\" href=\"/ጾመ-ሓዋርያት/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
 						document.getElementById("td" + week +"_"+ dayIndex).bgColor ="#FFFF00";
-						desc= desc + serkeMealt + " - ጾመ ሓዋርያት<br>";
+						desc= desc + geezNum[serkeMealt] + " - ጾመ ሓዋርያት<br>";
 					}
 					else if ( month == tsomeDihenetWor( year ) && serkeMealt == tsomeDihenetKen( year ) ){
 						document.getElementById("td" + week +"_"+ dayIndex).innerHTML ="<a title = \"ጾመ ድህነት\" href=\"/ጾመ-ድህነት/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
 						document.getElementById("td" + week +"_"+ dayIndex).bgColor ="#FFFF00";
-						desc= desc + serkeMealt + " - ጾመ ድህነት<br>";
+						desc= desc + geezNum[serkeMealt] + " - ጾመ ድህነት<br>";
 					}
 					else if ( month == enqutatashWor( year ) && serkeMealt == enqutatashKen( year ) ){
 						document.getElementById("td" + week +"_"+ dayIndex).innerHTML ="<a title = \"ቅዱስ ዩሐንስ\" href=\"/ቅዱስ-ዩሐንስ/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
 						document.getElementById("td" + week +"_"+ dayIndex).bgColor ="#FFFF00";
-						desc= desc + serkeMealt + " - ቅዱስ ዩሐንስ<br>";
+						desc= desc + geezNum[serkeMealt] + " - ቅዱስ ዩሐንስ<br>";
 					}
 					else if ( month == meskelWor( year ) && serkeMealt == meskelKen( year ) ){
 						document.getElementById("td" + week +"_"+ dayIndex).innerHTML ="<a title = \"መስቀል\" href=\"/መስቀል/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
 						document.getElementById("td" + week +"_"+ dayIndex).bgColor ="#FFFF00";
-						desc= desc + serkeMealt + " - መስቀል<br>";
+						desc= desc + geezNum[serkeMealt] + " - መስቀል<br>";
 					}
 					else if ( month == genaWor( year ) && serkeMealt == genaKen( year ) ){
 						document.getElementById("td" + week +"_"+ dayIndex).innerHTML ="<a title = \"ልደት\" href=\"/ልደት/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
 						document.getElementById("td" + week +"_"+ dayIndex).bgColor ="#FFFF00";
-						desc= desc + serkeMealt + " - ልደት<br>";
+						desc= desc + geezNum[serkeMealt] + " - ልደት<br>";
 					}
 					else if ( month == timketWor( year ) && serkeMealt == timketKen( year ) ){
 						document.getElementById("td" + week +"_"+ dayIndex).innerHTML ="<a title = \"ጥምቀት\" href=\"/ጥምቀት/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
 						document.getElementById("td" + week +"_"+ dayIndex).bgColor ="#FFFF00";
-						desc= desc + serkeMealt + " - ጥምቀት<br>";
+						desc= desc + geezNum[serkeMealt] + " - ጥምቀት<br>";
 					}
 					else if ( month == tsomeFilsetaWor( year ) && serkeMealt == tsomeFilsetaKen( year ) ){
 						document.getElementById("td" + week +"_"+ dayIndex).innerHTML ="<a title = \"ጾመ ፍልሰታ\" href=\"/ጾመ-ፍልሰታ/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
 						document.getElementById("td" + week +"_"+ dayIndex).bgColor ="#FFFF00";
-						desc= desc + serkeMealt + " - ጾመ ፍልሰታ<br>";
+						desc= desc + geezNum[serkeMealt] + " - ጾመ ፍልሰታ<br>";
 					}
 					else if ( month == filsetaWor( year ) && serkeMealt == filsetaKen( year ) ){
 						document.getElementById("td" + week +"_"+ dayIndex).innerHTML ="<a title = \"ናይ ኣዴና ቅ.ድ ዕርገት\" href=\"/ናይ-ኣዴና-ዕርገት/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
 						document.getElementById("td" + week +"_"+ dayIndex).bgColor ="#FFFF00";
-						desc= desc + serkeMealt + " - ናይ ኣዴና ቅ.ድ ዕርገት<br>";
+						desc= desc + geezNum[serkeMealt] + " - ናይ ኣዴና ቅ.ድ ዕርገት<br>";
 					}
 					else if ( month == debreTaborWor( year ) && serkeMealt == debreTaborKen( year ) ){
 						document.getElementById("td" + week +"_"+ dayIndex).innerHTML ="<a title = \"ደብረ ታቦር\" href=\"/ደብረ-ታቦር/\" >" + "<font size=\"3\">" + geezNum[ serkeMealt ] + "</font>" + "/" + "<font size=\"2\">" + ethDayToGregDay ( year, month, serkeMealt ) + "</font>" + "</a>";
 						document.getElementById("td" + week +"_"+ dayIndex).bgColor ="#FFFF00";
-						desc= desc + serkeMealt + " - ደብረ ታቦር<br>";
+						desc= desc + geezNum[serkeMealt] + " - ደብረ ታቦር<br>";
 					}
 					else{
 						/*var tempString = "";
