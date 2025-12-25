@@ -1,0 +1,43 @@
+#dsize td 
+	{
+		font-size:14pt;
+		font-style: bold;
+		font-color:white;
+	}
+	td.BorderMeRed {
+	  background-color:#FFF;
+	  border:2px solid red;
+	  padding:10px;
+	}
+	td.BorderMeBlue {
+	  background-color:#FFF;
+	  border:1px solid blue;
+	  padding:15px;
+	}
+	td.BorderMeGreen {
+	  background-color:#FFF;
+	  border:1px solid green;
+	  padding:15px;
+	}
+
+	.aClassSelect 
+	{
+		color:Sienna;
+		font-style: bold;
+		font-size:11pt;
+		padding-left:0;
+	}
+	.hlt 
+	{
+		background-color: #f8f800;
+		color: #000;
+	}
+	.hidden 
+	{
+		background-color: #ffffff;
+		color: #ffffff;
+	}
+.sundayactive {
+   pointer-events: none;
+   cursor: default;
+}

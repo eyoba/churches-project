@@ -40,6 +40,25 @@
 
     <div class="container">
 
+      <!-- Geez Calendar Section -->
+      <div class="calendar-section">
+        <h3 class="widget-title">ግእዝ ኣውደ ኣዋርሕ</h3>
+        <table width="860" border="0" cellspacing="0" cellpadding="0" align="center">
+          <tbody>
+            <tr>
+              <td rowspan="2" valign="top" bgcolor="white" width="700">
+                <div id="geez-calendar-container"></div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- PDF Link -->
+        <div class="calendar-pdf-link">
+          <a href="/100_yrs_BahreHasab_Calendar.pdf" target="_blank">ባሕረ ሓሳብ ናይ 100 ዓመት ኣጽዋማትን በዓላትን መግለጺ</a>
+        </div>
+      </div>
+
       <div v-if="loading" class="spinner"></div>
 
       <div v-else-if="error" class="alert alert-error">
@@ -47,6 +66,12 @@
       </div>
 
       <div v-else>
+        <!-- Churches Section Header -->
+        <div class="churches-header">
+          <h2>ኣብ ትሕቲ ንኡስ ሃገረ ስብከት ኖርወይ ዝርከባ ናይ ኤርትራ ኦርቶዶክሳውያን ቤተ ክርስቲያናትን ማሕበራትን</h2>
+          <p class="churches-subtitle">Eritrean Orthodox Tewahdo Churches under Diocese of Norway</p>
+        </div>
+
         <div class="grid grid-2">
           <div v-for="church in churches" :key="church.id" class="card church-card">
             <img v-if="church.logo_url" :src="church.logo_url" :alt="church.name" class="church-logo" loading="lazy">
@@ -111,6 +136,9 @@ export default {
       this.fetchSiteSettings(),
       this.fetchChurches()
     ])
+
+    // Load Geez Calendar scripts
+    this.loadGeezCalendar()
   },
   methods: {
     async fetchSiteSettings() {
@@ -202,6 +230,45 @@ export default {
       const darken = (val) => Math.max(0, Math.floor(val * 0.7))
 
       return `rgb(${darken(r)}, ${darken(g)}, ${darken(b)})`
+    },
+    loadGeezCalendar() {
+      // Load CSS from local file
+      const cssLink = document.createElement('link')
+      cssLink.rel = 'stylesheet'
+      cssLink.href = '/geez_calendar.css'
+      cssLink.type = 'text/css'
+      document.head.appendChild(cssLink)
+
+      // Load JavaScript from local file
+      const script = document.createElement('script')
+      script.src = '/geez_calendar.js'
+      script.onload = () => {
+        // Wait a bit longer and check if container exists
+        setTimeout(() => {
+          const container = document.getElementById('geez-calendar-container')
+          console.log('Container found:', container)
+          console.log('displayCalendar function:', window.displayCalendar)
+
+          if (window.displayCalendar && container) {
+            // Define global today variable that the calendar script needs
+            window.today = new Date()
+            console.log('Initializing calendar with date:', window.today)
+            const cal = new window.displayCalendar(
+              window.today.getFullYear(),
+              window.today.getMonth() + 1,
+              window.today.getDate()
+            )
+            window.firstTime = false
+            console.log('Calendar initialized')
+          } else {
+            console.error('Calendar not initialized - missing container or function')
+          }
+        }, 500)
+      }
+      script.onerror = (error) => {
+        console.error('Failed to load geez_calendar.js:', error)
+      }
+      document.body.appendChild(script)
     }
   }
 }
@@ -447,6 +514,99 @@ export default {
 
   .field-info-item strong {
     min-width: auto;
+  }
+}
+
+/* Geez Calendar Section */
+.calendar-section {
+  margin: 2rem 0;
+  padding: 2rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.widget-title {
+  text-align: center;
+  font-size: 1.5rem;
+  color: var(--gray-900);
+  margin: 0 0 1.5rem 0;
+  font-weight: 600;
+}
+
+#geez-calendar-container {
+  min-height: 400px;
+}
+
+@media (max-width: 768px) {
+  .calendar-section {
+    padding: 1rem;
+    margin: 1rem 0;
+  }
+
+  .widget-title {
+    font-size: 1.25rem;
+  }
+
+  #geez-calendar-container {
+    min-height: 300px;
+    overflow-x: auto;
+  }
+}
+
+/* Calendar PDF Link */
+.calendar-pdf-link {
+  text-align: center;
+  margin: 1rem 0 0 0;
+  padding: 0 1rem;
+}
+
+.calendar-pdf-link a {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.calendar-pdf-link a:hover {
+  color: var(--gray-900);
+  text-decoration: underline;
+}
+
+/* Churches Section Header */
+.churches-header {
+  text-align: center;
+  margin: 3rem 0 2rem 0;
+  padding: 0 1rem;
+}
+
+.churches-header h2 {
+  font-size: 1.75rem;
+  color: var(--gray-900);
+  margin: 0 0 0.5rem 0;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.churches-subtitle {
+  font-size: 1.125rem;
+  color: var(--gray-600);
+  margin: 0;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .churches-header {
+    margin: 2rem 0 1.5rem 0;
+  }
+
+  .churches-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .churches-subtitle {
+    font-size: 1rem;
   }
 }
 </style>
