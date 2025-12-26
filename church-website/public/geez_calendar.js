@@ -618,7 +618,7 @@ var AMETE_FEDA = new Number(5500);
 				strCalTable = strCalTable + "<option value=\""+ worCount+"\">"+ WOR[ worCount ] +"</option>";
 		strCalTable = strCalTable + "</select>";
       	strCalTable = strCalTable + "<select name=\"lstYear\" class=\"aClassSelect\" size=\"1\" id=\"lstYear\" onChange=\"changeCalendarByMonthOrYear(frmEthiopianCalendar.lstYear.value, frmEthiopianCalendar.lstWor.value)\">";
-		for (var count = 2000; count <= 2020; count++)
+		for (var count = 2000; count <= 2030; count++)
 			if (count == year )
 				strCalTable = strCalTable + "<option value=\""+ count +"\" selected>"+ count +"</option>";
 			else
