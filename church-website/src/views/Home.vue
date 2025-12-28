@@ -53,6 +53,18 @@
           </tbody>
         </table>
 
+        <!-- PWA Install Link -->
+        <div class="pwa-install-banner">
+          <div class="pwa-icon">📱</div>
+          <div class="pwa-content">
+            <h4>Install Geez Calendar App</h4>
+            <p>Get the offline calendar app on your phone or desktop</p>
+          </div>
+          <a href="https://eyoba.github.io/geez-calendar-pwa/" target="_blank" class="btn-install-pwa">
+            Install PWA
+          </a>
+        </div>
+
         <!-- PDF Link -->
         <div class="calendar-pdf-link">
           <a href="/100_yrs_BahreHasab_Calendar.pdf" target="_blank">ባሕረ ሓሳብ ናይ 100 ዓመት ኣጽዋማትን በዓላትን መግለጺ</a>
@@ -551,6 +563,91 @@ export default {
   #geez-calendar-container {
     min-height: 300px;
     overflow-x: auto;
+  }
+}
+
+/* PWA Install Banner */
+.pwa-install-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin: 1.5rem 0;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pwa-install-banner:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.pwa-icon {
+  font-size: 3rem;
+  flex-shrink: 0;
+}
+
+.pwa-content {
+  flex: 1;
+}
+
+.pwa-content h4 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.pwa-content p {
+  margin: 0;
+  opacity: 0.9;
+  font-size: 0.875rem;
+}
+
+.btn-install-pwa {
+  background: white;
+  color: #667eea;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-install-pwa:hover {
+  background: #f8f9fa;
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 768px) {
+  .pwa-install-banner {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.25rem;
+    gap: 0.75rem;
+  }
+
+  .pwa-icon {
+    font-size: 2.5rem;
+  }
+
+  .pwa-content h4 {
+    font-size: 1.125rem;
+  }
+
+  .pwa-content p {
+    font-size: 0.8125rem;
+  }
+
+  .btn-install-pwa {
+    width: 100%;
+    padding: 0.875rem 1rem;
   }
 }
 
